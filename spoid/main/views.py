@@ -44,8 +44,9 @@ class GetTableData(APIView):
             cursor = connection.cursor()
             cursor.execute(f"SELECT * FROM {table_name} join Price on {table_name}.ComponentID = Price.ComponentID LIMIT {(table_pages[table_name]+1)*10} OFFSET {(table_pages[table_name]+1)*10-10}")
             sql_data = dictfetchall(cursor)
+            print(sql_data)
             # 쿼리 데이터를 직렬화
-            serializer = table_serializers[table_name](sql_data, many=True)
+            serializer = table_price_serializers[table_name](sql_data, many=True)
             data[table_name] = serializer.data
         
         return Response(data, status=status.HTTP_200_OK)
