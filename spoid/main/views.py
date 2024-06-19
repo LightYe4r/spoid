@@ -51,4 +51,15 @@ class GetTableData(APIView):
         
         return Response(data, status=status.HTTP_200_OK)
     
-    
+class ComponentDetail(APIView):
+    def post(self, request):
+        data = request.data
+        component_id = data['component_id']
+        component_type = data['component_type']
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT * FROM {component_type} join Price on {component_type}.ComponentID = Price.ComponentID WHERE {component_type}.ComponentID = '{component_id}'""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer =  table_price_serializers[component_type](sql_data, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)

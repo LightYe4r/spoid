@@ -21,4 +21,5 @@ from main.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('get_table_data/', GetTableData.as_view()),
+    path('component_detail/', ComponentDetail.as_view()),
 ]
