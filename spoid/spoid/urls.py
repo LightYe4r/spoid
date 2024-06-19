@@ -20,6 +20,5 @@ from main.views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('insert-dummy-data/', InsertDummyDataView.as_view()),
-    path('component/', ComponentListView.as_view()),
+    path('get_table_data/', GetTableData.as_view()),
 ]
