@@ -11,7 +11,7 @@ table_serializers = {
     'Mainboard': MainboardDataSerializer,
     'Power': PowerDataSerializer,
     'Storage': StorageDataSerializer,
-    'Case': CaseDataSerializer,
+    'PcCase': PcCaseDataSerializer,
     'Cooler': CoolerDataSerializer,
 }
 
@@ -22,7 +22,7 @@ table_price_serializers = {
     'Mainboard': MainboardPriceDataSerializer,
     'Power': PowerPriceDataSerializer,
     'Storage': StoragePriceDataSerializer,
-    'Case': CasePriceDataSerializer,
+    'PcCase': PcCasePriceDataSerializer,
     'Cooler': CoolerPriceDataSerializer,
 }
 
@@ -50,4 +50,5 @@ class GetTableData(APIView):
             data[table_name] = serializer.data
         
         return Response(data, status=status.HTTP_200_OK)
+    
     

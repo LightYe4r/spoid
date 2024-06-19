@@ -17,7 +17,7 @@ class CpuDataSerializer(serializers.Serializer):
     GpuClock = serializers.CharField()
     ImageURL = serializers.CharField()
 
-class CaseDataSerializer(serializers.Serializer):
+class PcCaseDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
     Type = serializers.CharField()
     Model = serializers.CharField()
@@ -124,8 +124,8 @@ class OrderDataSerializer(serializers.Serializer):
     MainboardType = serializers.CharField()
     StorageID = serializers.CharField()
     StorageType = serializers.CharField()
-    CaseID = serializers.CharField()
-    CaseType = serializers.CharField()
+    PcCaseID = serializers.CharField()
+    PcCaseType = serializers.CharField()
     PowerID = serializers.CharField()
     PowerType = serializers.CharField()
     
@@ -206,7 +206,7 @@ class CpuPriceDataSerializer(serializers.Serializer):
     Price = serializers.CharField()
     URL = serializers.CharField()
 
-class CasePriceDataSerializer(serializers.Serializer):
+class PcCasePriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
     Type = serializers.CharField()
     Model = serializers.CharField()
