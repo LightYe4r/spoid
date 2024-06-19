@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection
 from .serializers import *
+from datetime import datetime
 
 table_serializers = {
     'Cpu': CpuDataSerializer,
@@ -61,5 +62,58 @@ class ComponentDetail(APIView):
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer =  table_price_serializers[component_type](sql_data, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class CreateOrder(APIView):
+    def post(self, request):
+        data = request.data
+        order_id = f"{datetime.now().isoformat()}+{data['user_id']}"
+        cursor = connection.cursor()
+        cursor.execute(f"""INSERT INTO Orders (OrderID, UserID, CPUID, CpuType, GPUID, GpuType, MemoryID, MemoryType,
+                        CoolerID, CoolerType, MainboardID, MainboardType, StorageID, StorageType, PcCaseID, PcCaseType,
+                        PowerID, PowerType) VALUES ('{order_id}', '{data['user_id']}', '{data['cpu_id']}',
+                        '{data['cpu_type']}', '{data['gpu_id']}', '{data['gpu_type']}', '{data['memory_id']}', '{data['memory_type']}',
+                        '{data['cooler_id']}', '{data['cooler_type']}', '{data['mainboard_id']}', '{data['mainboard_type']}',
+                        '{data['storage_id']}', '{data['storage_type']}', '{data['pc_case_id']}', '{data['pc_case_type']}', 
+                        '{data['power_id']}', '{data['power_type']}')""")
+        cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{order_id}'""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer = OrdersDataSerializer(sql_data, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class DetailOrder(APIView):
+    def post(self, request):
+        data = request.data
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{data['order_id']}'""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer = OrdersDataSerializer(sql_data, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class GetOrder(APIView):
+    def post(self, request):
+        data = request.data
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT * FROM Orders WHERE UserID = '{data['user_id']}'""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer = OrdersDataSerializer(sql_data, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class CreateUser(APIView):
+    def post(self, request):
+        data = request.data
+        cursor = connection.cursor()
+        cursor.execute(f"""INSERT INTO User (UserID, Name, Email) VALUES ('{data['user_id']}', '{data['user_name']}', '{data['user_email']}')""")
+        cursor.execute(f"""SELECT * FROM User WHERE UserID = '{data['user_id']}'""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer = UserDataSerializer(sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
