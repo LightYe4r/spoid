@@ -137,3 +137,17 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# AWS Cognito settings
+AWS_COGNITO_REGION = env('AWS_COGNITO_REGION')
+AWS_USER_POOL_ID = env('AWS_USER_POOL_ID')
+AWS_COGNITO_CLIENT_ID = env('AWS_COGNITO_CLIENT_ID')
+AWS_COGNITO_CLIENT_SECRET = env('AWS_COGNITO_CLIENT_SECRET')
+
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+
+
+
+
