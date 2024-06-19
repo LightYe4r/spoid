@@ -21,5 +21,13 @@ from main.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('get_table_data/', GetTableData.as_view()),
+<<<<<<< HEAD
     path('login/', include('login.urls')),
+=======
+    path('component_detail/', ComponentDetail.as_view()),
+    path('create_order/', CreateOrder.as_view()),
+    path('create_user/', CreateUser.as_view()),
+    path('detail_order/', DetailOrder.as_view()),
+    path('get_order_list/', GetOrder.as_view()),
+>>>>>>> 782a7f3aaca1a3a6cf4925f23b14c57e27cf6e4b
 ]

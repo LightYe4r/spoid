@@ -109,7 +109,7 @@ class MemoryDataSerializer(serializers.Serializer):
     RGB = serializers.CharField()
     ImageURL = serializers.CharField()
 
-class OrderDataSerializer(serializers.Serializer):
+class OrdersDataSerializer(serializers.Serializer):
     OrderID = serializers.CharField()
     UserID = serializers.CharField()
     CPUID = serializers.CharField()
