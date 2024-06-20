@@ -47,10 +47,10 @@ class GetTableData(APIView):
             cursor = connection.cursor()
             cursor.execute(f"""
                 SELECT {table_name}.*, 
-                       GROUP_CONCAT(Price.Date) as Dates,
-                       GROUP_CONCAT(Price.Shop) as Shops,
-                       GROUP_CONCAT(Price.Price) as Prices,
-                       GROUP_CONCAT(Price.URL) as URLs
+                       GROUP_CONCAT(Price.Date) as Date,
+                       GROUP_CONCAT(Price.Shop) as Shop,
+                       GROUP_CONCAT(Price.Price) as Price,
+                       GROUP_CONCAT(Price.URL) as URL
                 FROM {table_name}
                 JOIN Price ON {table_name}.ComponentID = Price.ComponentID
                 WHERE Price.Date = %s
@@ -59,10 +59,10 @@ class GetTableData(APIView):
             """, [date_filter, (table_pages[table_name]+1)*10, (table_pages[table_name]+1)*10-10])
             sql_data = dictfetchall(cursor)
             for item in sql_data:
-                item['Dates'] = item['Dates'].split(',') if item['Dates'] else []
-                item['Shops'] = item['Shops'].split(',') if item['Shops'] else []
-                item['Prices'] = item['Prices'].split(',') if item['Prices'] else []
-                item['URLs'] = item['URLs'].split(',') if item['URLs'] else []
+                item['Date'] = item['Date'].split(',') if item['Date'] else []
+                item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
+                item['Price'] = item['Price'].split(',') if item['Price'] else []
+                item['URL'] = item['URL'].split(',') if item['URL'] else []
             # 쿼리 데이터를 직렬화
             serializer = table_price_serializers[table_name](sql_data, many=True)
             data[table_name] = serializer.data
@@ -75,10 +75,28 @@ class ComponentDetail(APIView):
         component_id = data['component_id']
         component_type = data['component_type']
         cursor = connection.cursor()
-        cursor.execute(f"""SELECT * FROM {component_type} join Price on {component_type}.ComponentID = Price.ComponentID WHERE {component_type}.ComponentID = '{component_id}'""")
+        cursor.execute(f"""
+            SELECT {component_type}.*, 
+                   GROUP_CONCAT(Price.Date) as Date,
+                   GROUP_CONCAT(Price.Shop) as Shop,
+                   GROUP_CONCAT(Price.Price) as Price,
+                   GROUP_CONCAT(Price.URL) as URL
+            FROM {component_type}
+            JOIN Price ON {component_type}.ComponentID = Price.ComponentID
+            WHERE {component_type}.ComponentID = %s
+            GROUP BY {component_type}.ComponentID, {component_type}.Type
+        """, [component_id])
         sql_data = dictfetchall(cursor)
+        
+        # 쿼리 데이터를 후처리하여 리스트로 변환
+        for item in sql_data:
+            item['Date'] = item['Date'].split(',') if item['Date'] else []
+            item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
+            item['Price'] = item['Price'].split(',') if item['Price'] else []
+            item['URL'] = item['URL'].split(',') if item['URL'] else []
+
         # 쿼리 데이터를 직렬화
-        serializer =  table_price_serializers[component_type](sql_data, many=True)
+        serializer = table_price_serializers[component_type](sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
     
