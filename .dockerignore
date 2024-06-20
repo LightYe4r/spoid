@@ -1,0 +1,22 @@
+# .git 디렉토리 및 그 내용 무시
+.git
+.gitignore
+
+# 환경 설정 파일 무시
+.env
+
+# 파이썬 캐시 파일 무시
+__pycache__
+*.pyc
+
+# 환경 설정 폴더 무시
+.idea
+.vscode
+
+# 로컬 환경의 설정 파일 무시
+.DS_Store
+
+# 빌드 아티팩트 무시
+build/
+dist/
+*.egg-info

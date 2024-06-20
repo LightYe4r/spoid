@@ -18,7 +18,7 @@ docutils==0.16
 drf-jwt==1.19.2
 idna==3.7
 jmespath==1.0.1
-mysqlclient==2.2.4
+mysqlclient
 pyasn1==0.6.0
 pycparser==2.22
 PyJWT==1.7.1
