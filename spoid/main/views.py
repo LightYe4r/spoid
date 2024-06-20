@@ -58,10 +58,13 @@ class GetTableData(APIView):
                 LIMIT %s OFFSET %s
             """, [date_filter, (table_pages[table_name]+1)*10, (table_pages[table_name]+1)*10-10])
             sql_data = dictfetchall(cursor)
-            print(sql_data)
+            for item in sql_data:
+                item['Dates'] = item['Dates'].split(',') if item['Dates'] else []
+                item['Shops'] = item['Shops'].split(',') if item['Shops'] else []
+                item['Prices'] = item['Prices'].split(',') if item['Prices'] else []
+                item['URLs'] = item['URLs'].split(',') if item['URLs'] else []
             # 쿼리 데이터를 직렬화
             serializer = table_price_serializers[table_name](sql_data, many=True)
-            print(serializer.data)
             data[table_name] = serializer.data
         
         return Response(data, status=status.HTTP_200_OK)
