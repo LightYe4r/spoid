@@ -10,6 +10,7 @@ cryptography==42.0.8
 Django==4.2.13
 django-cognito-jwt==0.0.4
 django-cors-headers==4.3.1
+django-environ==0.11.2
 djangorestframework==3.15.1
 djangorestframework-simplejwt==5.3.1
 dnspython==2.6.1
@@ -17,6 +18,7 @@ docutils==0.16
 drf-jwt==1.19.2
 idna==3.7
 jmespath==1.0.1
+mysqlclient==2.2.4
 pyasn1==0.6.0
 pycparser==2.22
 PyJWT==1.7.1
