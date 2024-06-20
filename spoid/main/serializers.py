@@ -205,7 +205,10 @@ class CpuPriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
-
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()
+    
 class PcCasePriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
     Type = serializers.CharField()
@@ -228,6 +231,9 @@ class PcCasePriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()
 
 class CoolerPriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
@@ -245,6 +251,9 @@ class CoolerPriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()
 
 class GpuPriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
@@ -268,6 +277,9 @@ class GpuPriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()
 
 class MainboardPriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
@@ -292,6 +304,9 @@ class MainboardPriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()
 
 class MemoryPriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
@@ -309,6 +324,9 @@ class MemoryPriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()
 
 class PowerPriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
@@ -332,7 +350,9 @@ class PowerPriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
-
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()    
 class StoragePriceDataSerializer(serializers.Serializer):
     ComponentID = serializers.CharField()
     Type = serializers.CharField()
@@ -356,4 +376,7 @@ class StoragePriceDataSerializer(serializers.Serializer):
     Type = serializers.CharField()
     Price = serializers.CharField()
     URL = serializers.CharField()
+    LowestPrice = serializers.CharField()
+    LowestShop = serializers.CharField()
+    LowestURL = serializers.CharField()
 

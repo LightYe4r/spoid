@@ -27,4 +27,5 @@ urlpatterns = [
     path('create_user/', CreateUser.as_view()),
     path('detail_order/', DetailOrder.as_view()),
     path('get_order_list/', GetOrder.as_view()),
+    path('get_component_list/', GetComponentList.as_view()),
 ]

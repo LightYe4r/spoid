@@ -63,6 +63,9 @@ class GetTableData(APIView):
                 item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
                 item['Price'] = item['Price'].split(',') if item['Price'] else []
                 item['URL'] = item['URL'].split(',') if item['URL'] else []
+                item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+                item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
             # 쿼리 데이터를 직렬화
             serializer = table_price_serializers[table_name](sql_data, many=True)
             data[table_name] = serializer.data
@@ -94,6 +97,9 @@ class ComponentDetail(APIView):
             item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
             item['Price'] = item['Price'].split(',') if item['Price'] else []
             item['URL'] = item['URL'].split(',') if item['URL'] else []
+            item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+            item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+            item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
 
         # 쿼리 데이터를 직렬화
         serializer = table_price_serializers[component_type](sql_data, many=True)
@@ -150,5 +156,16 @@ class CreateUser(APIView):
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = UserDataSerializer(sql_data, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class GetComponentList(APIView):
+    def post(self, request):
+        data = request.data
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT * FROM {data['component_type']}""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer = table_serializers[data['component_type']](sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
