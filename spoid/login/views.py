@@ -3,15 +3,15 @@ import boto3
 from django.conf import settings
 from django.http import JsonResponse
 from botocore.exceptions import ClientError
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db import connection
+from main.serializers import *
 
-def unicode_to_string(value):
-    try:
-        return value.encode('latin1').decode('unicode_escape')
-    except Exception:
-        return value
-
-def get_user_info(request):
-    try:
+class CreateUser(APIView):
+    def get(self, request):
+        # cognito에서 사용자 풀 list 가져오기
         client = boto3.client(
             'cognito-idp',
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
@@ -24,17 +24,21 @@ def get_user_info(request):
             UserPoolId=settings.AWS_USER_POOL_ID
         )
 
+        # 사용자 풀의 유저 목록을 MySQL과 동기화하기
         users = response.get('Users', [])
-
-        # 유저 정보 반환
-        user_info = []
         for user in users:
             attributes = {attr['Name']: unicode_to_string(attr['Value']) for attr in user['Attributes']}
-            user_info.append({
-                'Attributes': attributes
-            })
+            user_id = user['Username']
+            name = attributes.get('name', '')
+            email = attributes.get('email', '')
 
-        return JsonResponse({'users': user_info})
+            query = f"""
+            INSERT INTO `User` (UserID, Name, Email) 
+            VALUES ('{user_id}', '{name}', '{email}')
+            """
 
-    except ClientError as e:
-        return JsonResponse({'error': str(e)}, status=400)
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                connection.commit()
+
+        return Response({"message": "Users synchronized successfully"}, status=status.HTTP_200_OK)
