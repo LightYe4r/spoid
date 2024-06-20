@@ -155,6 +155,7 @@ class CreateUser(APIView):
         cursor.execute(f"""SELECT * FROM User WHERE UserID = '{data['user_id']}'""")
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
+
         serializer = UserDataSerializer(sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -162,10 +163,28 @@ class CreateUser(APIView):
 class GetComponentList(APIView):
     def post(self, request):
         data = request.data
+        table_name = data['component_type']
         cursor = connection.cursor()
-        cursor.execute(f"""SELECT * FROM {data['component_type']}""")
+        cursor.execute(f"""
+                SELECT {table_name}.*, 
+                       GROUP_CONCAT(Price.Date) as Date,
+                       GROUP_CONCAT(Price.Shop) as Shop,
+                       GROUP_CONCAT(Price.Price) as Price,
+                       GROUP_CONCAT(Price.URL) as URL
+                FROM {table_name}
+                JOIN Price ON {table_name}.ComponentID = Price.ComponentID
+                GROUP BY {table_name}.ComponentID, {table_name}.Type
+            """)
         sql_data = dictfetchall(cursor)
+        for item in sql_data:
+            item['Date'] = item['Date'].split(',') if item['Date'] else []
+            item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
+            item['Price'] = item['Price'].split(',') if item['Price'] else []
+            item['URL'] = item['URL'].split(',') if item['URL'] else []
+            item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+            item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+            item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
         # 쿼리 데이터를 직렬화
-        serializer = table_serializers[data['component_type']](sql_data, many=True)
+        serializer = table_price_serializers[data['component_type']](sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
