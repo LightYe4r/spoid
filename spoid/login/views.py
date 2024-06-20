@@ -1,13 +1,14 @@
-import json
 import boto3
 from django.conf import settings
-from django.http import JsonResponse
 from botocore.exceptions import ClientError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection
 from main.serializers import *
+
+def unicode_to_string(value):
+    return value.encode('utf-8').decode('utf-8')
 
 class CreateUser(APIView):
     def get(self, request):
@@ -34,11 +35,18 @@ class CreateUser(APIView):
 
             query = f"""
             INSERT INTO `User` (UserID, Name, Email) 
-            VALUES ('{user_id}', '{name}', '{email}')
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                Name = VALUES(Name),
+                Email = VALUES(Email)
             """
 
-            with connection.cursor() as cursor:
-                cursor.execute(query)
-                connection.commit()
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute(query, [user_id, name, email])
+                    connection.commit()
+            except IntegrityError as e:
+                print(f"IntegrityError: {e}")
+                continue  # 이미 존재하는 사용자에 대해서는 계속 진행
 
         return Response({"message": "Users synchronized successfully"}, status=status.HTTP_200_OK)

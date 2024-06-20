@@ -27,7 +27,7 @@ table_price_serializers = {
     'Cooler': CoolerPriceDataSerializer,
 }
 
-# 원하는 테이블들의 데이터를 최신순으로 10개씩 가져오고 해당 데이터들의 pk로 price테이블의 componentid를 매핑해서 pagenation하는 API
+
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dictionary"
     columns = [col[0] for col in cursor.description]
@@ -36,18 +36,32 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+# 원하는 테이블들의 데이터를 최신순으로 10개씩 가져오고 해당 데이터들의 pk로 price테이블의 componentid를 매핑해서 pagenation하는 API
 class GetTableData(APIView):
     def post(self, request):
         table_names = request.data['table_names']
         table_pages = request.data['table_pages']
+        date_filter = '2024-06-01'
         data = {}
         for table_name in table_names:
             cursor = connection.cursor()
-            cursor.execute(f"SELECT * FROM {table_name} join Price on {table_name}.ComponentID = Price.ComponentID LIMIT {(table_pages[table_name]+1)*10} OFFSET {(table_pages[table_name]+1)*10-10}")
+            cursor.execute(f"""
+                SELECT {table_name}.*, 
+                       GROUP_CONCAT(Price.Date) as Dates,
+                       GROUP_CONCAT(Price.Shop) as Shops,
+                       GROUP_CONCAT(Price.Price) as Prices,
+                       GROUP_CONCAT(Price.URL) as URLs
+                FROM {table_name}
+                JOIN Price ON {table_name}.ComponentID = Price.ComponentID
+                WHERE Price.Date = %s
+                GROUP BY {table_name}.ComponentID, {table_name}.Type
+                LIMIT %s OFFSET %s
+            """, [date_filter, (table_pages[table_name]+1)*10, (table_pages[table_name]+1)*10-10])
             sql_data = dictfetchall(cursor)
             print(sql_data)
             # 쿼리 데이터를 직렬화
             serializer = table_price_serializers[table_name](sql_data, many=True)
+            print(serializer.data)
             data[table_name] = serializer.data
         
         return Response(data, status=status.HTTP_200_OK)
