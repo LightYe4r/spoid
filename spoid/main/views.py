@@ -140,9 +140,9 @@ class GetOrder(APIView):
     def post(self, request):
         data = request.data
         cursor = connection.cursor()
-        cursor.execute(f"""select Orders.OrderID, User.Name, Cpu.Model, PcCase.ComponentID, Gpu.ComponentID, Memory.ComponentID, Storage.ComponentID, Cooler.ComponentID, Mainboard.ComponentID, Power.ComponentID  
+        cursor.execute(f"""select Orders.OrderID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power'  
                         from Orders
-                        LEFT Join User on User.'{data['user_id']}' = Orders.UserID
+                        LEFT Join User on '{data['user_id']}' = Orders.UserID
                         LEFT Join Cpu on Cpu.ComponentID = Orders.CPUID
                         LEFT Join Gpu on Gpu.ComponentID = Orders.GPUID
                         LEFT Join Memory on Memory.ComponentID = Orders.MemoryID
@@ -150,10 +150,10 @@ class GetOrder(APIView):
                         LEFT Join Mainboard on Mainboard.ComponentID = Orders.MainboardID
                         LEFT Join PcCase on PcCase.ComponentID = Orders.PcCaseID
                         LEFT Join Cooler on Cooler.ComponentID = Orders.CoolerID
-                        LEFT Join Power on Power.ComponentID = Orders.PowerID'""")
+                        LEFT Join Power on Power.ComponentID = Orders.PowerID""")
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
-        serializer = OrdersDataSerializer(sql_data, many=True)
+        serializer = OrderListviewSerializer(sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
 

@@ -380,3 +380,13 @@ class StoragePriceDataSerializer(serializers.Serializer):
     LowestShop = serializers.CharField()
     LowestURL = serializers.CharField()
 
+class OrderListviewSerializer(serializers.Serializer):
+    OrderID = serializers.CharField()
+    CPU = serializers.CharField()
+    GPU = serializers.CharField()
+    Mainboard = serializers.CharField()
+    Memory = serializers.CharField()
+    Storage = serializers.CharField()
+    PcCase = serializers.CharField()
+    Cooler = serializers.CharField()
+    Power = serializers.CharField()
