@@ -188,3 +188,64 @@ class GetComponentList(APIView):
         serializer = table_price_serializers[data['component_type']](sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class CreateFavorite(APIView):
+    def post(self, request):
+        data = request.data
+        cursor = connection.cursor()
+        cursor.execute(f"""INSERT INTO Favorite (UserID, ComponentID, ComponentType) VALUES ('{data['user_id']}', '{data['component_id']}', '{data['component_type']}')""")
+        cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer = FavoriteDataSerializer(sql_data, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class DeleteFavorite(APIView):
+    def post(self, request):
+        data = request.data
+        cursor = connection.cursor()
+        cursor.execute(f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND ComponentType = '{data['component_type']}'""")
+        cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
+        sql_data = dictfetchall(cursor)
+        # 쿼리 데이터를 직렬화
+        serializer = FavoriteDataSerializer(sql_data, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class GetComponentListWithFavorite(APIView):
+    def post(self, request):
+        data = request.data
+        table_name = data['component_type']
+        cursor = connection.cursor()
+        cursor.execute(f"""
+                SELECT {table_name}.*, 
+                       GROUP_CONCAT(Price.Date) as Date,
+                       GROUP_CONCAT(Price.Shop) as Shop,
+                       GROUP_CONCAT(Price.Price) as Price,
+                       GROUP_CONCAT(Price.URL) as URL
+                FROM {table_name}
+                JOIN Price ON {table_name}.ComponentID = Price.ComponentID
+                GROUP BY {table_name}.ComponentID, {table_name}.Type
+            """)
+        sql_data = dictfetchall(cursor)
+        for item in sql_data:
+            item['Date'] = item['Date'].split(',') if item['Date'] else []
+            item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
+            item['Price'] = item['Price'].split(',') if item['Price'] else []
+            item['URL'] = item['URL'].split(',') if item['URL'] else []
+            item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+            item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+            item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+        # 쿼리 데이터를 직렬화
+        serializer = table_price_serializers[data['component_type']](sql_data, many=True)
+        if data['user_id'] == 'None':
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
+        favorite_data = dictfetchall(cursor)
+        favorite_data = [item['ComponentID'] for item in favorite_data]
+        
+        for item in serializer.data:
+            item['IsFavorite'] = item['ComponentID'] in favorite_data
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
