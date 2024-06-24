@@ -192,8 +192,9 @@ class GetComponentList(APIView):
 class CreateFavorite(APIView):
     def post(self, request):
         data = request.data
+        favorite_id = f"{datetime.now().isoformat()}+{data['user_id']}"
         cursor = connection.cursor()
-        cursor.execute(f"""INSERT INTO Favorite (UserID, ComponentID, ComponentType) VALUES ('{data['user_id']}', '{data['component_id']}', '{data['component_type']}')""")
+        cursor.execute(f"""INSERT INTO Favorite (FavoriteID, UserID, ComponentID, Type) VALUES ('{favorite_id}', '{data['user_id']}', '{data['component_id']}', '{data['component_type']}')""")
         cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
@@ -205,7 +206,7 @@ class DeleteFavorite(APIView):
     def post(self, request):
         data = request.data
         cursor = connection.cursor()
-        cursor.execute(f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND ComponentType = '{data['component_type']}'""")
+        cursor.execute(f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND Type = '{data['component_type']}'""")
         cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
