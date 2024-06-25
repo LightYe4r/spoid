@@ -152,6 +152,7 @@ class GetOrder(APIView):
                         LEFT Join Cooler on Cooler.ComponentID = Orders.CoolerID
                         LEFT Join Power on Power.ComponentID = Orders.PowerID""")
         sql_data = dictfetchall(cursor)
+        print(sql_data)
         # 쿼리 데이터를 직렬화
         serializer = OrderListviewSerializer(sql_data, many=True)
         
