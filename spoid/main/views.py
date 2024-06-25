@@ -89,6 +89,7 @@ class ComponentDetail(APIView):
             JOIN Price ON {component_type}.ComponentID = Price.ComponentID
             WHERE {component_type}.ComponentID = %s
             GROUP BY {component_type}.ComponentID, {component_type}.Type
+            Order by Price.Date DESC
         """, [component_id])
         sql_data = dictfetchall(cursor)
         
@@ -144,21 +145,6 @@ class GetOrder(APIView):
         cursor.execute(f"""SELECT * FROM Orders WHERE UserID = '{data['user_id']}'""")
         if cursor.rowcount == 0:
             return Response([], status=status.HTTP_200_OK)
-        
-        
-        print(f"""select Orders.OrderID, User.UserID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
-                        from Orders
-                        LEFT Join User on User.UserID = '{data['user_id']}'
-                        LEFT Join Cpu on Cpu.ComponentID = Orders.CPUID
-                        LEFT Join Gpu on Gpu.ComponentID = Orders.GPUID
-                        LEFT Join Memory on Memory.ComponentID = Orders.MemoryID
-                        LEFT Join Storage on Storage.ComponentID = Orders.StorageID
-                        LEFT Join Mainboard on Mainboard.ComponentID = Orders.MainboardID
-                        LEFT Join PcCase on PcCase.ComponentID = Orders.PcCaseID
-                        LEFT Join Cooler on Cooler.ComponentID = Orders.CoolerID
-                        LEFT Join Power on Power.ComponentID = Orders.PowerID
-                        WHERE User.UserID = '{data['user_id']}' AND Orders.UserID = '{data['user_id']}'""")
-
 
         cursor.execute(f"""select Orders.OrderID, User.UserID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
@@ -189,35 +175,6 @@ class CreateUser(APIView):
         # 쿼리 데이터를 직렬화
 
         serializer = UserDataSerializer(sql_data, many=True)
-        
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-class GetComponentList(APIView):
-    def post(self, request):
-        data = request.data
-        table_name = data['component_type']
-        cursor = connection.cursor()
-        cursor.execute(f"""
-                SELECT {table_name}.*, 
-                       GROUP_CONCAT(Price.Date) as Date,
-                       GROUP_CONCAT(Price.Shop) as Shop,
-                       GROUP_CONCAT(Price.Price) as Price,
-                       GROUP_CONCAT(Price.URL) as URL
-                FROM {table_name}
-                JOIN Price ON {table_name}.ComponentID = Price.ComponentID
-                GROUP BY {table_name}.ComponentID, {table_name}.Type
-            """)
-        sql_data = dictfetchall(cursor)
-        for item in sql_data:
-            item['Date'] = item['Date'].split(',') if item['Date'] else []
-            item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
-            item['Price'] = item['Price'].split(',') if item['Price'] else []
-            item['URL'] = item['URL'].split(',') if item['URL'] else []
-            item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
-            item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-            item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-        # 쿼리 데이터를 직렬화
-        serializer = table_price_serializers[data['component_type']](sql_data, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
     
