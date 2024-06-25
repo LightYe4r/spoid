@@ -4,9 +4,6 @@ from rest_framework import status
 from django.db import connection
 from .serializers import *
 from datetime import datetime, timedelta
-
-today = datetime.today().strftime('%Y-%m-%d')
-yesterday = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
         
 
 table_serializers = {
@@ -252,10 +249,15 @@ class DeleteFavorite(APIView):
 class GetComponentListWithFavorite(APIView):
     def post(self, request):
         data = request.data
+        today = datetime.today().strftime('%Y-%m-%d')
+        yesterday = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
         table_name = data['component_type']
         cursor = connection.cursor()
-        cursor.execute(f"""SELECT componentID FROM Price WHERE Type = '{table_name}''""")
+        cursor.execute(f"""SELECT componentID FROM Price WHERE Type = '{table_name}'""")
         sql_data = dictfetchall(cursor)
+        sql_data = [item['componentID'] for item in sql_data]
+        sql_data = ','.join([f"'{item}'" for item in sql_data])
+        print(sql_data)
         cursor.execute(f"""
                 SELECT c.*, 
                        GROUP_CONCAT(p.Date) as Date,
@@ -269,14 +271,14 @@ class GetComponentListWithFavorite(APIView):
                     JOIN (
                         SELECT ComponentID, Shop, MAX(Date) as MaxDate
                         FROM Price
-                        WHERE ComponentID IN {sql_data}
+                        WHERE ComponentID IN ({sql_data})
                         AND Date IN ('{today}', '{yesterday}')
-                        GROUP BY ComponentID, Shop
+                        GROUP BY ComponentID, Shop, Date
                     ) p2
                     ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
                 ) p
                 ON c.ComponentID = p.ComponentID
-                WHERE c.ComponentID IN c.ComponentID
+                WHERE c.ComponentID IN ({sql_data})
                 GROUP BY c.ComponentID, c.Type
             """)
         sql_data = dictfetchall(cursor)
