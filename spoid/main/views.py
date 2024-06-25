@@ -163,7 +163,7 @@ class GetOrder(APIView):
                         WHERE User.UserID = '{data['user_id']}' AND Orders.UserID = '{data['user_id']}'""")
 
 
-        cursor.execute(f"""select Orders.OrderID, User.UserID Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
+        cursor.execute(f"""select Orders.OrderID, User.UserID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
                         LEFT Join User on User.UserID = '{data['user_id']}'
                         LEFT Join Cpu on Cpu.ComponentID = Orders.CPUID
