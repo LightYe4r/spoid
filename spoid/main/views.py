@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import connection
 from .serializers import *
-from datetime import datetime
+from datetime import datetime, timedelta
 
 table_serializers = {
     'Cpu': CpuDataSerializer,
@@ -140,6 +140,10 @@ class GetOrder(APIView):
     def post(self, request):
         data = request.data
         cursor = connection.cursor()
+        cursor.execute(f"""SELECT * FROM Orders WHERE UserID = '{data['user_id']}'""")
+        if cursor.rowcount == 0:
+            return Response([], status=status.HTTP_200_OK)
+        
         cursor.execute(f"""select Orders.OrderID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
                         LEFT Join User on '{data['user_id']}' = Orders.UserID
@@ -263,51 +267,65 @@ class GetComponentListWithFavorite(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class GetFavoriteListWithComponent(APIView):
-    def post(self, requests):
-        data = requests.data
+    def post(self, request):
+        today = datetime.today().strftime('%Y-%m-%d')
+        yesterday = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+        data = request.data
         user_id = data['user_id']
+        
         cursor = connection.cursor()
         cursor.execute(f"""SELECT ComponentID, Type FROM Favorite WHERE UserID = '{user_id}'""")
         favorite_data = dictfetchall(cursor)
+        
         type_component_map = {}
-        for component_type in favorite_data:
-            if component_type['Type'] not in type_component_map:
-                type_component_map[component_type['Type']] = []
-            type_component_map[component_type['Type']].append(component_type['ComponentID'])
+        for component in favorite_data:
+            component_type = component['Type']
+            if component_type not in type_component_map:
+                type_component_map[component_type] = []
+            type_component_map[component_type].append(component['ComponentID'])
         
         query_data = {}
-        for component_type in type_component_map:
-            print(f"""
-                SELECT {component_type}.*, 
-                       GROUP_CONCAT(Price.Date) as Date,
-                       GROUP_CONCAT(Price.Shop) as Shop,
-                       GROUP_CONCAT(Price.Price) as Price,
-                       GROUP_CONCAT(Price.URL) as URL
-                FROM {component_type}
-                JOIN Price ON {component_type}.ComponentID = Price.ComponentID
-                WHERE {component_type}.ComponentID IN ({",".join([f"'{item}'" for item in type_component_map[component_type]])})
-                GROUP BY {component_type}.ComponentID, {component_type}.Type
-            """)
-            cursor.execute(f"""
-                SELECT {component_type}.*, 
-                       GROUP_CONCAT(Price.Date) as Date,
-                       GROUP_CONCAT(Price.Shop) as Shop,
-                       GROUP_CONCAT(Price.Price) as Price,
-                       GROUP_CONCAT(Price.URL) as URL
-                FROM {component_type}
-                JOIN Price ON {component_type}.ComponentID = Price.ComponentID
-                WHERE {component_type}.ComponentID IN ({",".join([f"'{item}'" for item in type_component_map[component_type]])})
-                GROUP BY {component_type}.ComponentID, {component_type}.Type
-            """)
+        for component_type, component_ids in type_component_map.items():
+            component_ids_str = ",".join([f"'{item}'" for item in component_ids])
+            query = f"""
+                SELECT c.*, 
+                       GROUP_CONCAT(p.Date) as Date,
+                       GROUP_CONCAT(p.Shop) as Shop,
+                       GROUP_CONCAT(p.Price) as Price,
+                       GROUP_CONCAT(p.URL) as URL
+                FROM {component_type} c
+                JOIN (
+                    SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
+                    FROM Price p1
+                    JOIN (
+                        SELECT ComponentID, Shop, MAX(Date) as MaxDate
+                        FROM Price
+                        WHERE ComponentID IN ({component_ids_str})
+                        AND Date IN ('{today}', '{yesterday}')
+                        GROUP BY ComponentID, Shop
+                    ) p2
+                    ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
+                ) p
+                ON c.ComponentID = p.ComponentID
+                WHERE c.ComponentID IN ({component_ids_str})
+                GROUP BY c.ComponentID, c.Type
+            """
+            
+            cursor.execute(query)
             sql_data = dictfetchall(cursor)
             for item in sql_data:
                 item['Date'] = item['Date'].split(',') if item['Date'] else []
                 item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
                 item['Price'] = item['Price'].split(',') if item['Price'] else []
                 item['URL'] = item['URL'].split(',') if item['URL'] else []
-                item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
-                item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-                item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                if item['Price']:
+                    item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+                    item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                    item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                else:
+                    item['LowestPrice'] = None
+                    item['LowestShop'] = None
+                    item['LowestURL'] = None
             # 쿼리 데이터를 직렬화
             serializer = table_price_serializers[component_type](sql_data, many=True)
             query_data[component_type] = serializer.data
