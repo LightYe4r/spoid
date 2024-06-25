@@ -396,3 +396,4 @@ class OrderListviewSerializer(serializers.Serializer):
     PcCase = serializers.CharField()
     Cooler = serializers.CharField()
     Power = serializers.CharField()
+    ImageURL = serializers.CharField()
