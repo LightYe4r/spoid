@@ -5,6 +5,10 @@ from django.db import connection
 from .serializers import *
 from datetime import datetime, timedelta
 
+today = datetime.today().strftime('%Y-%m-%d')
+yesterday = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+        
+
 table_serializers = {
     'Cpu': CpuDataSerializer,
     'Gpu': GpuDataSerializer,
@@ -144,6 +148,20 @@ class GetOrder(APIView):
         if cursor.rowcount == 0:
             return Response([], status=status.HTTP_200_OK)
         
+        
+        print(f"""select Orders.OrderID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
+                        from Orders
+                        LEFT Join User on '{data['user_id']}' = Orders.UserID
+                        LEFT Join Cpu on Cpu.ComponentID = Orders.CPUID
+                        LEFT Join Gpu on Gpu.ComponentID = Orders.GPUID
+                        LEFT Join Memory on Memory.ComponentID = Orders.MemoryID
+                        LEFT Join Storage on Storage.ComponentID = Orders.StorageID
+                        LEFT Join Mainboard on Mainboard.ComponentID = Orders.MainboardID
+                        LEFT Join PcCase on PcCase.ComponentID = Orders.PcCaseID
+                        LEFT Join Cooler on Cooler.ComponentID = Orders.CoolerID
+                        LEFT Join Power on Power.ComponentID = Orders.PowerID""")
+
+
         cursor.execute(f"""select Orders.OrderID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
                         LEFT Join User on '{data['user_id']}' = Orders.UserID
@@ -234,15 +252,30 @@ class GetComponentListWithFavorite(APIView):
         data = request.data
         table_name = data['component_type']
         cursor = connection.cursor()
+        cursor.execute(f"""SELECT componentID FROM Price WHERE Type = '{table_name}''""")
+        sql_data = dictfetchall(cursor)
         cursor.execute(f"""
-                SELECT {table_name}.*, 
-                       GROUP_CONCAT(Price.Date) as Date,
-                       GROUP_CONCAT(Price.Shop) as Shop,
-                       GROUP_CONCAT(Price.Price) as Price,
-                       GROUP_CONCAT(Price.URL) as URL
-                FROM {table_name}
-                JOIN Price ON {table_name}.ComponentID = Price.ComponentID
-                GROUP BY {table_name}.ComponentID, {table_name}.Type
+                SELECT c.*, 
+                       GROUP_CONCAT(p.Date) as Date,
+                       GROUP_CONCAT(p.Shop) as Shop,
+                       GROUP_CONCAT(p.Price) as Price,
+                       GROUP_CONCAT(p.URL) as URL
+                FROM {table_name} c
+                JOIN (
+                    SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
+                    FROM Price p1
+                    JOIN (
+                        SELECT ComponentID, Shop, MAX(Date) as MaxDate
+                        FROM Price
+                        WHERE ComponentID IN {sql_data}
+                        AND Date IN ('{today}', '{yesterday}')
+                        GROUP BY ComponentID, Shop
+                    ) p2
+                    ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
+                ) p
+                ON c.ComponentID = p.ComponentID
+                WHERE c.ComponentID IN c.ComponentID
+                GROUP BY c.ComponentID, c.Type
             """)
         sql_data = dictfetchall(cursor)
         for item in sql_data:
