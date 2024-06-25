@@ -151,7 +151,7 @@ class GetOrder(APIView):
         
         print(f"""select Orders.OrderID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
-                        LEFT Join User on '{data['user_id']}' = Orders.UserID
+                        LEFT Join User on '{data['user_id']}' = User.UserID AND '{data['user_id']}' = Orders.UserID
                         LEFT Join Cpu on Cpu.ComponentID = Orders.CPUID
                         LEFT Join Gpu on Gpu.ComponentID = Orders.GPUID
                         LEFT Join Memory on Memory.ComponentID = Orders.MemoryID
