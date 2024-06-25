@@ -260,3 +260,55 @@ class GetComponentListWithFavorite(APIView):
             item['IsFavorite'] = item['ComponentID'] in favorite_data
         
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class GetFavoriteListWithComponent(APIView):
+    def post(self, requests):
+        data = requests.data
+        user_id = data['user_id']
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT ComponentID, Type FROM Favorite WHERE UserID = '{user_id}'""")
+        favorite_data = dictfetchall(cursor)
+        type_component_map = {}
+        for component_type in favorite_data:
+            if component_type['Type'] not in type_component_map:
+                type_component_map[component_type['Type']] = []
+            type_component_map[component_type['Type']].append(component_type['ComponentID'])
+        
+        query_data = {}
+        for component_type in type_component_map:
+            print(f"""
+                SELECT {component_type}.*, 
+                       GROUP_CONCAT(Price.Date) as Date,
+                       GROUP_CONCAT(Price.Shop) as Shop,
+                       GROUP_CONCAT(Price.Price) as Price,
+                       GROUP_CONCAT(Price.URL) as URL
+                FROM {component_type}
+                JOIN Price ON {component_type}.ComponentID = Price.ComponentID
+                WHERE {component_type}.ComponentID IN ({",".join([f"'{item}'" for item in type_component_map[component_type]])})
+                GROUP BY {component_type}.ComponentID, {component_type}.Type
+            """)
+            cursor.execute(f"""
+                SELECT {component_type}.*, 
+                       GROUP_CONCAT(Price.Date) as Date,
+                       GROUP_CONCAT(Price.Shop) as Shop,
+                       GROUP_CONCAT(Price.Price) as Price,
+                       GROUP_CONCAT(Price.URL) as URL
+                FROM {component_type}
+                JOIN Price ON {component_type}.ComponentID = Price.ComponentID
+                WHERE {component_type}.ComponentID IN ({",".join([f"'{item}'" for item in type_component_map[component_type]])})
+                GROUP BY {component_type}.ComponentID, {component_type}.Type
+            """)
+            sql_data = dictfetchall(cursor)
+            for item in sql_data:
+                item['Date'] = item['Date'].split(',') if item['Date'] else []
+                item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
+                item['Price'] = item['Price'].split(',') if item['Price'] else []
+                item['URL'] = item['URL'].split(',') if item['URL'] else []
+                item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+                item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+            # 쿼리 데이터를 직렬화
+            serializer = table_price_serializers[component_type](sql_data, many=True)
+            query_data[component_type] = serializer.data
+
+        return Response(query_data, status=status.HTTP_200_OK)

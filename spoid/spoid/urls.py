@@ -30,4 +30,5 @@ urlpatterns = [
     path('get_component_list/', GetComponentListWithFavorite.as_view()),
     path('create_heart/', CreateFavorite.as_view()),
     path('delete_heart/', DeleteFavorite.as_view()),
+    path('get_favorite_list/', GetFavoriteListWithComponent.as_view()),
 ]
