@@ -388,6 +388,7 @@ class StoragePriceDataSerializer(serializers.Serializer):
 
 class OrderListviewSerializer(serializers.Serializer):
     OrderID = serializers.CharField()
+    UserID = serializers.CharField()
     CPU = serializers.CharField()
     GPU = serializers.CharField()
     Mainboard = serializers.CharField()
