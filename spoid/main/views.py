@@ -140,7 +140,7 @@ class GetOrder(APIView):
     def post(self, request):
         data = request.data
         cursor = connection.cursor()
-        cursor.execute(f"""select Orders.OrderID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power'  
+        cursor.execute(f"""select Orders.OrderID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power, PcCase.ImageURL AS ImageURL'  
                         from Orders
                         LEFT Join User on '{data['user_id']}' = Orders.UserID
                         LEFT Join Cpu on Cpu.ComponentID = Orders.CPUID
