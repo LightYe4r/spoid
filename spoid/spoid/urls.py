@@ -20,7 +20,7 @@ from main.views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('get_table_data/', GetTableData.as_view()),
+    # path('get_table_data/', GetTableData.as_view()),
     path('login/', include('login.urls')),
     path('component_detail/', ComponentDetail.as_view()),
     path('create_order/', CreateOrder.as_view()),

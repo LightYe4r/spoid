@@ -81,26 +81,27 @@ class ComponentDetail(APIView):
         cursor = connection.cursor()
         query = f"""
             SELECT c.*, 
-                   GROUP_CONCAT(p.Date) as Date,
-                   GROUP_CONCAT(p.Shop) as Shop,
-                   GROUP_CONCAT(p.Price) as Price,
-                   GROUP_CONCAT(p.URL) as URL
+                   GROUP_CONCAT(pr.Date) as Date,
+                   GROUP_CONCAT(pr.Shop) as Shop,
+                   GROUP_CONCAT(pr.Price) as Price,
+                   GROUP_CONCAT(pr.URL) as URL
             FROM {component_type} c
             JOIN (
-                SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
-                FROM Price p1
+                SELECT pr1.ComponentID, pr1.Shop, pr1.Date, pr1.Price, pr1.URL
+                FROM Price pr1
                 JOIN (
                     SELECT ComponentID, Shop, MAX(Date) as MaxDate
                     FROM Price
-                    WHERE ComponentID = ({component_id})
+                    WHERE ComponentID = '{component_id}'
                     GROUP BY ComponentID, Shop
-                ) p2
-                ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
-            ) p
-            ON c.ComponentID = p.ComponentID
-            WHERE c.ComponentID = ({component_id})
+                ) pr2
+                ON pr1.ComponentID = pr2.ComponentID AND pr1.Shop = pr2.Shop AND pr1.Date = pr2.MaxDate
+            ) pr
+            ON c.ComponentID = pr.ComponentID
+            WHERE c.ComponentID = '{component_id}'
             GROUP BY c.ComponentID, c.Type
         """
+        print(query)
         cursor.execute(query)
         sql_data = dictfetchall(cursor)
         
@@ -159,16 +160,16 @@ class GetOrder(APIView):
 
         cursor.execute(f"""select Orders.OrderID, User.UserID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
-                        LEFT Join User on User.UserID = '{data['user_id']}'
-                        LEFT Join Cpu on Cpu.ComponentID = Orders.CPUID
-                        LEFT Join Gpu on Gpu.ComponentID = Orders.GPUID
-                        LEFT Join Memory on Memory.ComponentID = Orders.MemoryID
-                        LEFT Join Storage on Storage.ComponentID = Orders.StorageID
-                        LEFT Join Mainboard on Mainboard.ComponentID = Orders.MainboardID
-                        LEFT Join PcCase on PcCase.ComponentID = Orders.PcCaseID
-                        LEFT Join Cooler on Cooler.ComponentID = Orders.CoolerID
-                        LEFT Join Power on Power.ComponentID = Orders.PowerID
-                        WHERE User.UserID = '{data['user_id']}' AND Orders.UserID = '{data['user_id']}'""")
+                        INNER Join User on User.UserID = Orders.UserID
+                        INNER Join Cpu on Cpu.ComponentID = Orders.CPUID
+                        INNER Join Gpu on Gpu.ComponentID = Orders.GPUID
+                        INNER Join Memory on Memory.ComponentID = Orders.MemoryID
+                        INNER Join Storage on Storage.ComponentID = Orders.StorageID
+                        INNER Join Mainboard on Mainboard.ComponentID = Orders.MainboardID
+                        INNER Join PcCase on PcCase.ComponentID = Orders.PcCaseID
+                        INNER Join Cooler on Cooler.ComponentID = Orders.CoolerID
+                        INNER Join Power on Power.ComponentID = Orders.PowerID
+                        WHERE Orders.UserID = '{data['user_id']}'""")
         sql_data = dictfetchall(cursor)
         print(sql_data)
         # 쿼리 데이터를 직렬화
