@@ -37,41 +37,41 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
-# 원하는 테이블들의 데이터를 최신순으로 10개씩 가져오고 해당 데이터들의 pk로 price테이블의 componentid를 매핑해서 pagenation하는 API
-class GetTableData(APIView):
-    def post(self, request):
-        table_names = request.data['table_names']
-        table_pages = request.data['table_pages']
-        date_filter = '2024-06-01'
-        data = {}
-        for table_name in table_names:
-            cursor = connection.cursor()
-            cursor.execute(f"""
-                SELECT {table_name}.*, 
-                       GROUP_CONCAT(Price.Date) as Date,
-                       GROUP_CONCAT(Price.Shop) as Shop,
-                       GROUP_CONCAT(Price.Price) as Price,
-                       GROUP_CONCAT(Price.URL) as URL
-                FROM {table_name}
-                JOIN Price ON {table_name}.ComponentID = Price.ComponentID
-                WHERE Price.Date = %s
-                GROUP BY {table_name}.ComponentID, {table_name}.Type
-                LIMIT %s OFFSET %s
-            """, [date_filter, (table_pages[table_name]+1)*10, (table_pages[table_name]+1)*10-10])
-            sql_data = dictfetchall(cursor)
-            for item in sql_data:
-                item['Date'] = item['Date'].split(',') if item['Date'] else []
-                item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
-                item['Price'] = item['Price'].split(',') if item['Price'] else []
-                item['URL'] = item['URL'].split(',') if item['URL'] else []
-                item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
-                item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-                item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-            # 쿼리 데이터를 직렬화
-            serializer = table_price_serializers[table_name](sql_data, many=True)
-            data[table_name] = serializer.data
+# # 원하는 테이블들의 데이터를 최신순으로 10개씩 가져오고 해당 데이터들의 pk로 price테이블의 componentid를 매핑해서 pagenation하는 API
+# class GetTableData(APIView):
+#     def post(self, request):
+#         table_names = request.data['table_names']
+#         table_pages = request.data['table_pages']
+#         date_filter = '2024-06-01'
+#         data = {}
+#         for table_name in table_names:
+#             cursor = connection.cursor()
+#             cursor.execute(f"""
+#                 SELECT {table_name}.*, 
+#                        GROUP_CONCAT(Price.Date) as Date,
+#                        GROUP_CONCAT(Price.Shop) as Shop,
+#                        GROUP_CONCAT(Price.Price) as Price,
+#                        GROUP_CONCAT(Price.URL) as URL
+#                 FROM {table_name}
+#                 JOIN Price ON {table_name}.ComponentID = Price.ComponentID
+#                 WHERE Price.Date = %s
+#                 GROUP BY {table_name}.ComponentID, {table_name}.Type
+#                 LIMIT %s OFFSET %s
+#             """, [date_filter, (table_pages[table_name]+1)*10, (table_pages[table_name]+1)*10-10])
+#             sql_data = dictfetchall(cursor)
+#             for item in sql_data:
+#                 item['Date'] = item['Date'].split(',') if item['Date'] else []
+#                 item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
+#                 item['Price'] = item['Price'].split(',') if item['Price'] else []
+#                 item['URL'] = item['URL'].split(',') if item['URL'] else []
+#                 item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+#                 item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+#                 item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+#             # 쿼리 데이터를 직렬화
+#             serializer = table_price_serializers[table_name](sql_data, many=True)
+#             data[table_name] = serializer.data
         
-        return Response(data, status=status.HTTP_200_OK)
+#         return Response(data, status=status.HTTP_200_OK)
     
 class ComponentDetail(APIView):
     def post(self, request):
@@ -79,18 +79,29 @@ class ComponentDetail(APIView):
         component_id = data['component_id']
         component_type = data['component_type']
         cursor = connection.cursor()
-        cursor.execute(f"""
-            SELECT {component_type}.*, 
-                   GROUP_CONCAT(Price.Date) as Date,
-                   GROUP_CONCAT(Price.Shop) as Shop,
-                   GROUP_CONCAT(Price.Price) as Price,
-                   GROUP_CONCAT(Price.URL) as URL
-            FROM {component_type}
-            JOIN Price ON {component_type}.ComponentID = Price.ComponentID
-            WHERE {component_type}.ComponentID = %s
-            GROUP BY {component_type}.ComponentID, {component_type}.Type
-            Order by Price.Date DESC
-        """, [component_id])
+        query = f"""
+            SELECT c.*, 
+                   GROUP_CONCAT(p.Date) as Date,
+                   GROUP_CONCAT(p.Shop) as Shop,
+                   GROUP_CONCAT(p.Price) as Price,
+                   GROUP_CONCAT(p.URL) as URL
+            FROM {component_type} c
+            JOIN (
+                SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
+                FROM Price p1
+                JOIN (
+                    SELECT ComponentID, Shop, MAX(Date) as MaxDate
+                    FROM Price
+                    WHERE ComponentID = ({component_id})
+                    GROUP BY ComponentID, Shop
+                ) p2
+                ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
+            ) p
+            ON c.ComponentID = p.ComponentID
+            WHERE c.ComponentID = ({component_id})
+            GROUP BY c.ComponentID, c.Type
+        """
+        cursor.execute(query)
         sql_data = dictfetchall(cursor)
         
         # 쿼리 데이터를 후처리하여 리스트로 변환
