@@ -206,51 +206,65 @@ class DeleteFavorite(APIView):
 class GetComponentListWithFavorite(APIView):
     def post(self, request):
         data = request.data
-        today = datetime.today().strftime('%Y-%m-%d')
-        yesterday = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
         table_name = data['component_type']
         cursor = connection.cursor()
+        
+        # 컴포넌트 ID 목록 조회
         cursor.execute(f"""SELECT componentID FROM Price WHERE Type = '{table_name}'""")
         sql_data = dictfetchall(cursor)
         sql_data = [item['componentID'] for item in sql_data]
-        sql_data = ','.join([f"'{item}'" for item in sql_data])
-        print(sql_data)
-        cursor.execute(f"""
-                SELECT c.*, 
-                       GROUP_CONCAT(p.Date) as Date,
-                       GROUP_CONCAT(p.Shop) as Shop,
-                       GROUP_CONCAT(p.Price) as Price,
-                       GROUP_CONCAT(p.URL) as URL
-                FROM {table_name} c
+        component_ids_str = ','.join([f"'{item}'" for item in sql_data])
+        
+        if not component_ids_str:
+            return Response([], status=status.HTTP_200_OK)
+        
+        # 최신 데이터를 가져오는 쿼리
+        query = f"""
+            SELECT c.*, 
+                   GROUP_CONCAT(p.Date) as Date,
+                   GROUP_CONCAT(p.Shop) as Shop,
+                   GROUP_CONCAT(p.Price) as Price,
+                   GROUP_CONCAT(p.URL) as URL
+            FROM {table_name} c
+            JOIN (
+                SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
+                FROM Price p1
                 JOIN (
-                    SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
-                    FROM Price p1
-                    JOIN (
-                        SELECT ComponentID, Shop, MAX(Date) as MaxDate
-                        FROM Price
-                        WHERE ComponentID IN ({sql_data})
-                        AND Date IN ('{today}', '{yesterday}')
-                        GROUP BY ComponentID, Shop, Date
-                    ) p2
-                    ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
-                ) p
-                ON c.ComponentID = p.ComponentID
-                WHERE c.ComponentID IN ({sql_data})
-                GROUP BY c.ComponentID, c.Type
-            """)
+                    SELECT ComponentID, Shop, MAX(Date) as MaxDate
+                    FROM Price
+                    WHERE ComponentID IN ({component_ids_str})
+                    GROUP BY ComponentID, Shop
+                ) p2
+                ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
+            ) p
+            ON c.ComponentID = p.ComponentID
+            WHERE c.ComponentID IN ({component_ids_str})
+            GROUP BY c.ComponentID, c.Type
+        """
+        
+        cursor.execute(query)
         sql_data = dictfetchall(cursor)
+        
         for item in sql_data:
             item['Date'] = item['Date'].split(',') if item['Date'] else []
             item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
             item['Price'] = item['Price'].split(',') if item['Price'] else []
             item['URL'] = item['URL'].split(',') if item['URL'] else []
-            item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
-            item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-            item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+            if item['Price']:
+                item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+                item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+            else:
+                item['LowestPrice'] = None
+                item['LowestShop'] = None
+                item['LowestURL'] = None
+        
         # 쿼리 데이터를 직렬화
         serializer = table_price_serializers[data['component_type']](sql_data, many=True)
+        
         if data['user_id'] == 'None':
             return Response(serializer.data, status=status.HTTP_200_OK)
+        
         cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
         favorite_data = dictfetchall(cursor)
         favorite_data = [item['ComponentID'] for item in favorite_data]
@@ -295,7 +309,6 @@ class GetFavoriteListWithComponent(APIView):
                         SELECT ComponentID, Shop, MAX(Date) as MaxDate
                         FROM Price
                         WHERE ComponentID IN ({component_ids_str})
-                        AND Date IN ('{today}', '{yesterday}')
                         GROUP BY ComponentID, Shop
                     ) p2
                     ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
