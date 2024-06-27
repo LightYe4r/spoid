@@ -80,11 +80,12 @@ class ComponentDetail(APIView):
         component_type = data['component_type']
         cursor = connection.cursor()
         query = f"""
-            SELECT c.*, 
-                   GROUP_CONCAT(pr.Date) as Date,
-                   GROUP_CONCAT(pr.Shop) as Shop,
-                   GROUP_CONCAT(pr.Price) as Price,
-                   GROUP_CONCAT(pr.URL) as URL
+                SELECT c.*, 
+                GROUP_CONCAT(pr.Date) as Date,
+                GROUP_CONCAT(pr.Shop) as Shop,
+                GROUP_CONCAT(pr.Price) as Price,
+                GROUP_CONCAT(pr.URL) as URL,
+                ROUND(IFNULL(AVG(last_45_days.Price), 0)) AS AvgPriceLast45Days
             FROM {component_type} c
             JOIN (
                 SELECT pr1.ComponentID, pr1.Shop, pr1.Date, pr1.Price, pr1.URL
@@ -98,8 +99,20 @@ class ComponentDetail(APIView):
                 ON pr1.ComponentID = pr2.ComponentID AND pr1.Shop = pr2.Shop AND pr1.Date = pr2.MaxDate
             ) pr
             ON c.ComponentID = pr.ComponentID
+            LEFT JOIN (
+                SELECT ComponentID, AVG(Price) AS Price
+                FROM (
+                    SELECT ComponentID, Date, MIN(Price) AS Price
+                    FROM Price
+                    WHERE Date >= DATE_SUB(CURDATE(), INTERVAL 45 DAY)
+                    GROUP BY ComponentID, Date
+                ) daily_min_prices
+                GROUP BY ComponentID
+            ) last_45_days
+            ON c.ComponentID = last_45_days.ComponentID
             WHERE c.ComponentID = '{component_id}'
-            GROUP BY c.ComponentID, c.Type
+            GROUP BY c.ComponentID, c.Type;
+
         """
         print(query)
         cursor.execute(query)
@@ -115,10 +128,41 @@ class ComponentDetail(APIView):
             item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
             item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
 
+        query = f"""
+            SELECT ComponentID, Type, Shop,
+                    MAX(IF(Date = '{datetime.today().strftime('%Y-%m-%d')}', Price, NULL)) AS day1,
+                    MAX(IF(Date = '{(datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')}', Price, NULL)) AS day2,
+                    MAX(IF(Date = '{(datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d')}', Price, NULL)) AS day3,
+                    MAX(IF(Date = '{(datetime.today() - timedelta(days=3)).strftime('%Y-%m-%d')}', Price, NULL)) AS day4,
+                    MAX(IF(Date = '{(datetime.today() - timedelta(days=4)).strftime('%Y-%m-%d')}', Price, NULL)) AS day5,
+                    MAX(IF(Date = '{(datetime.today() - timedelta(days=5)).strftime('%Y-%m-%d')}', Price, NULL)) AS day6,
+                    MAX(IF(Date = '{(datetime.today() - timedelta(days=6)).strftime('%Y-%m-%d')}', Price, NULL)) AS day7
+            FROM Price
+            WHERE ComponentID = '{component_id}'
+            GROUP BY ComponentID, Type, Shop
+        """
+        cursor.execute(query)
+        price_data = dictfetchall(cursor)
+        for item in price_data:
+            item['day1'] = item['day1'] if item['day1'] else 0
+            item['day2'] = item['day2'] if item['day2'] else 0
+            item['day3'] = item['day3'] if item['day3'] else 0
+            item['day4'] = item['day4'] if item['day4'] else 0
+            item['day5'] = item['day5'] if item['day5'] else 0
+            item['day6'] = item['day6'] if item['day6'] else 0
+            item['day7'] = item['day7'] if item['day7'] else 0
+            item['Price'] = [item['day7'], item['day6'], item['day5'], item['day4'], item['day3'], item['day2'], item['day1']]
+
         # 쿼리 데이터를 직렬화
-        serializer = table_price_serializers[component_type](sql_data, many=True)
-        
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        component_serializer = table_price_serializers[component_type](sql_data, many=True)
+        price_serializer = Price45DaysSerializer(price_data, many=True)
+
+        response_data = {
+            "component_data": component_serializer.data,
+            "price_data": price_serializer.data
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
     
 class CreateOrder(APIView):
     def post(self, request):
@@ -232,11 +276,12 @@ class GetComponentListWithFavorite(APIView):
         
         # 최신 데이터를 가져오는 쿼리
         query = f"""
-            SELECT c.*, 
-                   GROUP_CONCAT(p.Date) as Date,
-                   GROUP_CONCAT(p.Shop) as Shop,
-                   GROUP_CONCAT(p.Price) as Price,
-                   GROUP_CONCAT(p.URL) as URL
+            SELECT  c.*, 
+                    GROUP_CONCAT(p.Date) as Date,
+                    GROUP_CONCAT(p.Shop) as Shop,
+                    GROUP_CONCAT(p.Price) as Price,
+                    GROUP_CONCAT(p.URL) as URL,
+                    ROUND(IFNULL(AVG(last_45_days.Price), 0)) AS AvgPriceLast45Days
             FROM {table_name} c
             JOIN (
                 SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
@@ -250,6 +295,17 @@ class GetComponentListWithFavorite(APIView):
                 ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
             ) p
             ON c.ComponentID = p.ComponentID
+            LEFT JOIN (
+                SELECT ComponentID, AVG(Price) AS Price
+                FROM (
+                    SELECT ComponentID, Date, MIN(Price) AS Price
+                    FROM Price
+                    WHERE Date >= DATE_SUB(CURDATE(), INTERVAL 45 DAY)
+                    GROUP BY ComponentID, Date
+                ) daily_min_prices
+                GROUP BY ComponentID
+            ) last_45_days
+            ON c.ComponentID = last_45_days.ComponentID
             WHERE c.ComponentID IN ({component_ids_str})
             GROUP BY c.ComponentID, c.Type
         """
@@ -309,16 +365,17 @@ class GetFavoriteListWithComponent(APIView):
             component_ids_str = ",".join([f"'{item}'" for item in component_ids])
             query = f"""
                 SELECT c.*, 
-                       GROUP_CONCAT(p.Date) as Date,
-                       GROUP_CONCAT(p.Shop) as Shop,
-                       GROUP_CONCAT(p.Price) as Price,
-                       GROUP_CONCAT(p.URL) as URL
+                    GROUP_CONCAT(p.Date) AS Date,
+                    GROUP_CONCAT(p.Shop) AS Shop,
+                    GROUP_CONCAT(p.Price) AS Price,
+                    GROUP_CONCAT(p.URL) AS URL,
+                    ROUND(IFNULL(AVG(last_45_days.Price), 0)) AS AvgPriceLast45Days
                 FROM {component_type} c
                 JOIN (
                     SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
                     FROM Price p1
                     JOIN (
-                        SELECT ComponentID, Shop, MAX(Date) as MaxDate
+                        SELECT ComponentID, Shop, MAX(Date) AS MaxDate
                         FROM Price
                         WHERE ComponentID IN ({component_ids_str})
                         GROUP BY ComponentID, Shop
@@ -326,10 +383,20 @@ class GetFavoriteListWithComponent(APIView):
                     ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
                 ) p
                 ON c.ComponentID = p.ComponentID
+                LEFT JOIN (
+                    SELECT ComponentID, AVG(Price) AS Price
+                    FROM (
+                        SELECT ComponentID, Date, MIN(Price) AS Price
+                        FROM Price
+                        WHERE Date >= DATE_SUB(CURDATE(), INTERVAL 45 DAY)
+                        GROUP BY ComponentID, Date
+                    ) daily_min_prices
+                    GROUP BY ComponentID
+                ) last_45_days
+                ON c.ComponentID = last_45_days.ComponentID
                 WHERE c.ComponentID IN ({component_ids_str})
-                GROUP BY c.ComponentID, c.Type
+                GROUP BY c.ComponentID, c.Type;
             """
-            
             cursor.execute(query)
             sql_data = dictfetchall(cursor)
             for item in sql_data:
