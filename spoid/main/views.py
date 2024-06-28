@@ -237,7 +237,7 @@ class GetOrder(APIView):
         sql_data = dictfetchall(cursor)
         
         query = f"""
-                SELECT CAST(ROUND(SUM(p.Price)) AS UNSIGNED) AS TotalPrice
+                SELECT OrderID, CAST(ROUND(SUM(p.Price)) AS UNSIGNED) AS TotalPrice
                 FROM Orders o
                 LEFT JOIN (
                     SELECT p.ComponentID, p.Price
@@ -257,16 +257,19 @@ class GetOrder(APIView):
                     o.CoolerID, 
                     o.PowerID
                 )
-                WHERE o.UserID = '{data['user_id']}';
+                WHERE o.UserID = '{data['user_id']}'
+                GROUP BY o.OrderID;
         """
         cursor.execute(query)
         total_price = dictfetchall(cursor)
-                    
         # 쿼리 데이터를 직렬화
         serializer = OrderListviewSerializer(sql_data, many=True)
+        i = 0
+        for item in serializer.data:
+            item['TotalPrice'] = total_price[i]['TotalPrice']
+            i += 1
         ResponseData = {
-            "order_data": serializer.data,
-            "total_price": int(total_price[0]['TotalPrice'])
+            "order_data": serializer.data
         }
         return Response(ResponseData, status=status.HTTP_200_OK)
 
