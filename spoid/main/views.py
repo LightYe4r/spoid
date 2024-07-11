@@ -476,7 +476,7 @@ class GetFavoriteListWithComponent(APIView):
                     JOIN (
                         SELECT ComponentID, Shop, MAX(Date) AS MaxDate
                         FROM Price
-                        WHERE ComponentID IN ('{component_ids_str}')
+                        WHERE ComponentID IN ({component_ids_str})
                         GROUP BY ComponentID, Shop
                     ) p2
                     ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
@@ -493,7 +493,7 @@ class GetFavoriteListWithComponent(APIView):
                     GROUP BY ComponentID
                 ) last_45_days
                 ON c.ComponentID = last_45_days.ComponentID
-                WHERE c.ComponentID IN ('{component_ids_str}')
+                WHERE c.ComponentID IN ({component_ids_str})
                 GROUP BY c.ComponentID, c.Type;
             """
             cursor.execute(query)
@@ -505,7 +505,7 @@ class GetFavoriteListWithComponent(APIView):
                 item['URL'] = item['URL'].split(',') if item['URL'] else []
                 if item['Price']:
                     try:
-                        item['LowestPrice'] = min([int(price) for price in item['Price'] if int(price)!=0])
+                        item['LowestPrice'] = min([int(price) for price in item['Price'] if price != 0])
                     except:
                         item['LowestPrice'] = 0
                     item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
@@ -601,7 +601,7 @@ class GetLandingPage(APIView):
                 item['Price'] = item['Price'].split(',') if item['Price'] else []
                 item['URL'] = item['URL'].split(',') if item['URL'] else []
                 try:
-                    item['LowestPrice'] = min([int(price) for price in item['Price'] if int(price)!=0])
+                    item['LowestPrice'] = min([int(price) for price in item['Price'] if price !=0])
                 except:
                     item['LowestPrice'] = 0    
                 item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
