@@ -84,8 +84,8 @@ class ComponentDetail(APIView):
         data = request.data
         component_id = data['component_id']
         component_type = data['component_type']
-        component_type = component_type.upper()
-        if component_type == 'CASE' or component_type == 'PCCASE':
+        # component_type = component_type.upper()
+        if component_type == 'CASE':
             component_type = 'PcCase'
         cursor = connection.cursor()
         query = f"""
@@ -329,7 +329,7 @@ class CreateUser(APIView):
 class CreateFavorite(APIView):
     def post(self, request):
         data = request.data
-        data['component_type'] = data['component_type'].upper()
+        # data['component_type'] = data['component_type'].upper()
         # if data['component_type'] == 'CASE' or data['component_type'] == 'PCCASE':
         #     data['component_type'] = 'CASE'
         favorite_id = f"{datetime.now().isoformat()}+{data['user_id']}"
@@ -345,7 +345,7 @@ class CreateFavorite(APIView):
 class DeleteFavorite(APIView):
     def post(self, request):
         data = request.data
-        data['component_type'] = data['component_type'].upper()
+        # data['component_type'] = data['component_type'].upper()
         # if data['component_type'] == 'CASE':
         #     data['component_type'] = 'PcCase'
         cursor = connection.cursor()
@@ -463,7 +463,7 @@ class GetFavoriteListWithComponent(APIView):
         for component in favorite_data:
             component_type = component['Type']
             component_table = component_type
-            component_type = component_type.upper()
+            # component_type = component_type.upper()
             if component_type not in type_component_map:
                 type_component_map[component_type] = []
             type_component_map[component_type].append(component['ComponentID'])
