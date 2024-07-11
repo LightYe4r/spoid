@@ -384,7 +384,7 @@ class GetComponentListWithFavorite(APIView):
                 JOIN (
                     SELECT ComponentID, Shop, MAX(Date) as MaxDate
                     FROM Price
-                    WHERE ComponentID IN ({component_ids_str})
+                    WHERE ComponentID IN ('{component_ids_str}')
                     GROUP BY ComponentID, Shop
                 ) p2
                 ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
@@ -401,7 +401,7 @@ class GetComponentListWithFavorite(APIView):
                 GROUP BY ComponentID
             ) last_45_days
             ON c.ComponentID = last_45_days.ComponentID
-            WHERE c.ComponentID IN ({component_ids_str})
+            WHERE c.ComponentID IN ('{component_ids_str}')
             GROUP BY c.ComponentID, c.Type
         """
         
@@ -476,7 +476,7 @@ class GetFavoriteListWithComponent(APIView):
                     JOIN (
                         SELECT ComponentID, Shop, MAX(Date) AS MaxDate
                         FROM Price
-                        WHERE ComponentID IN ({component_ids_str})
+                        WHERE ComponentID IN ('{component_ids_str}')
                         GROUP BY ComponentID, Shop
                     ) p2
                     ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
@@ -493,7 +493,7 @@ class GetFavoriteListWithComponent(APIView):
                     GROUP BY ComponentID
                 ) last_45_days
                 ON c.ComponentID = last_45_days.ComponentID
-                WHERE c.ComponentID IN ({component_ids_str})
+                WHERE c.ComponentID IN ('{component_ids_str}')
                 GROUP BY c.ComponentID, c.Type;
             """
             cursor.execute(query)
