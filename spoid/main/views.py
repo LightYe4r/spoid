@@ -128,7 +128,10 @@ class ComponentDetail(APIView):
             item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
             item['Price'] = item['Price'].split(',') if item['Price'] else []
             item['URL'] = item['URL'].split(',') if item['URL'] else []
-            item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+            try:
+                item['LowestPrice'] = min([int(price) for price in item['Price'] if int(price)!=0])
+            except:
+                item['LowestPrice'] = 0
             item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
             item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
 
@@ -240,51 +243,69 @@ class GetOrder(APIView):
         sql_data = dictfetchall(cursor)
         
         query = f"""
-                WITH TodayPrices AS (
-    SELECT 
-        p.ComponentID,
-        p.Price,
-        p.Date
-    FROM Price p
-    WHERE p.Date = CURRENT_DATE()
-)
-SELECT 
-    o.OrderID, 
-    COALESCE(cpu.Price, 0) + 
-    COALESCE(gpu.Price, 0) + 
-    COALESCE(memory.Price, 0) + 
-    COALESCE(storage.Price, 0) + 
-    COALESCE(mainboard.Price, 0) + 
-    COALESCE(pccase.Price, 0) + 
-    COALESCE(cooler.Price, 0) + 
-    COALESCE(power.Price, 0) as TotalPrice
-FROM Orders o
-LEFT JOIN TodayPrices cpu ON o.CPUID = cpu.ComponentID AND cpu.Date = CURRENT_DATE()
-LEFT JOIN TodayPrices gpu ON o.GPUID = gpu.ComponentID AND gpu.Date = CURRENT_DATE()
-LEFT JOIN TodayPrices memory ON o.MemoryID = memory.ComponentID AND memory.Date = CURRENT_DATE()
-LEFT JOIN TodayPrices storage ON o.StorageID = storage.ComponentID AND storage.Date = CURRENT_DATE()
-LEFT JOIN TodayPrices mainboard ON o.MainboardID = mainboard.ComponentID AND mainboard.Date = CURRENT_DATE()
-LEFT JOIN TodayPrices pccase ON o.PcCaseID = pccase.ComponentID AND pccase.Date = CURRENT_DATE()
-LEFT JOIN TodayPrices cooler ON o.CoolerID = cooler.ComponentID AND cooler.Date = CURRENT_DATE()
-LEFT JOIN TodayPrices power ON o.PowerID = power.ComponentID AND power.Date = CURRENT_DATE()
-WHERE o.UserID = '{data['user_id']}'
-Group By o.OrderID, cpu.Price, gpu.Price, memory.Price, storage.Price, mainboard.Price, pccase.Price, cooler.Price, power.Price;
-
-            """
+                SELECT OrderID, SUM(p.Price) AS TotalPrice
+                FROM Orders o
+                LEFT JOIN (
+                    SELECT p.ComponentID, p.Price
+                    FROM Price p
+                    JOIN (
+                        SELECT ComponentID, MAX(Date) AS MaxDate
+                        FROM Price
+                        GROUP BY ComponentID
+                    ) latest ON p.ComponentID = latest.ComponentID AND p.Date = latest.MaxDate
+                ) p ON p.ComponentID IN (
+                    o.CPUID, 
+                    o.GPUID, 
+                    o.MemoryID, 
+                    o.StorageID, 
+                    o.MainboardID, 
+                    o.PcCaseID, 
+                    o.CoolerID, 
+                    o.PowerID
+                )
+                WHERE o.UserID = '{data['user_id']}'
+                Group BY o.OrderID;
+        """
         cursor.execute(query)
         total_price = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
-        
         serializer = OrderListviewSerializer(sql_data, many=True)
-
         i = 0
-        
         for item in serializer.data:
             item['TotalPrice'] = total_price[i]['TotalPrice']
             i += 1
         ResponseData = {
             "order_data": serializer.data
         }
+        query = f"""
+                SELECT SUM(p.Price) 
+                FROM Orders o
+                LEFT JOIN (
+                    SELECT p.ComponentID, p.Price
+                    FROM Price p
+                    JOIN (
+                        SELECT ComponentID, MAX(Date) AS MaxDate
+                        FROM Price
+                        GROUP BY ComponentID
+                    ) latest ON p.ComponentID = latest.ComponentID AND p.Date = latest.MaxDate
+                ) p ON p.ComponentID IN (
+                    o.CPUID, 
+                    o.GPUID, 
+                    o.MemoryID, 
+                    o.StorageID, 
+                    o.MainboardID, 
+                    o.PcCaseID, 
+                    o.CoolerID, 
+                    o.PowerID
+                )
+                WHERE o.UserID = '{data['user_id']}'
+                GROUP BY o.OrderID;
+                """
+        cursor.execute(query)
+        price_data = dictfetchall(cursor)
+        print(price_data)
+        # print(price_data[0]['Price'], price_data[1]['Price'], price_data[2]['Price'], price_data[3]['Price'], price_data[4]['Price'], price_data[5]['Price'], price_data[6]['Price'], price_data[7]['Price'])
+        print('----------------')  
         return Response(ResponseData, status=status.HTTP_200_OK)
 
 class CreateUser(APIView):
@@ -391,10 +412,12 @@ class GetComponentListWithFavorite(APIView):
             item['Date'] = item['Date'].split(',') if item['Date'] else []
             item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
             item['Price'] = item['Price'].split(',') if item['Price'] else []
-            item['Price'] = [None if price == '0' else price for price in item['Price']]
             item['URL'] = item['URL'].split(',') if item['URL'] else []
             if item['Price']:
-                item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+                try:
+                    item['LowestPrice'] = min([int(price) for price in item['Price'] if price != 0])
+                except:
+                    item['LowestPrice'] = 0
                 item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
                 item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
             else:
@@ -479,10 +502,12 @@ class GetFavoriteListWithComponent(APIView):
                 item['Date'] = item['Date'].split(',') if item['Date'] else []
                 item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
                 item['Price'] = item['Price'].split(',') if item['Price'] else []
-                item['Price'] = [None if price == '0' else price for price in item['Price']]
                 item['URL'] = item['URL'].split(',') if item['URL'] else []
                 if item['Price']:
-                    item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+                    try:
+                        item['LowestPrice'] = min([int(price) for price in item['Price'] if int(price)!=0])
+                    except:
+                        item['LowestPrice'] = 0
                     item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
                     item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
                 else:
@@ -575,7 +600,10 @@ class GetLandingPage(APIView):
                 item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
                 item['Price'] = item['Price'].split(',') if item['Price'] else []
                 item['URL'] = item['URL'].split(',') if item['URL'] else []
-                item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
+                try:
+                    item['LowestPrice'] = min([int(price) for price in item['Price'] if int(price)!=0])
+                except:
+                    item['LowestPrice'] = 0    
                 item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
                 item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
 
