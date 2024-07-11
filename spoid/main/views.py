@@ -384,7 +384,7 @@ class GetComponentListWithFavorite(APIView):
                 JOIN (
                     SELECT ComponentID, Shop, MAX(Date) as MaxDate
                     FROM Price
-                    WHERE ComponentID IN ('{component_ids_str}')
+                    WHERE ComponentID IN ({component_ids_str})
                     GROUP BY ComponentID, Shop
                 ) p2
                 ON p1.ComponentID = p2.ComponentID AND p1.Shop = p2.Shop AND p1.Date = p2.MaxDate
@@ -401,7 +401,7 @@ class GetComponentListWithFavorite(APIView):
                 GROUP BY ComponentID
             ) last_45_days
             ON c.ComponentID = last_45_days.ComponentID
-            WHERE c.ComponentID IN ('{component_ids_str}')
+            WHERE c.ComponentID IN ({component_ids_str})
             GROUP BY c.ComponentID, c.Type
         """
         
@@ -418,12 +418,12 @@ class GetComponentListWithFavorite(APIView):
                     item['LowestPrice'] = min([int(price) for price in item['Price'] if price != 0])
                 except:
                     item['LowestPrice'] = 0
-                item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-                item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else 0
+                item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else 0
             else:
-                item['LowestPrice'] = None
-                item['LowestShop'] = None
-                item['LowestURL'] = None
+                item['LowestPrice'] = 0
+                item['LowestShop'] = 0
+                item['LowestURL'] = 0
         
         # 쿼리 데이터를 직렬화
         serializer = table_price_serializers[data['component_type']](sql_data, many=True)
@@ -508,12 +508,12 @@ class GetFavoriteListWithComponent(APIView):
                         item['LowestPrice'] = min([int(price) for price in item['Price'] if price != 0])
                     except:
                         item['LowestPrice'] = 0
-                    item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-                    item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+                    item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else 0
+                    item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else 0
                 else:
-                    item['LowestPrice'] = None
-                    item['LowestShop'] = None
-                    item['LowestURL'] = None
+                    item['LowestPrice'] = 0
+                    item['LowestShop'] = 0
+                    item['LowestURL'] = 0
             # 쿼리 데이터를 직렬화
             serializer = table_price_serializers[component_type](sql_data, many=True)
             query_data[component_type] = serializer.data
