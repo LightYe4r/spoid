@@ -366,8 +366,10 @@ class GetComponentListWithFavorite(APIView):
         table_type = table_name
         cursor = connection.cursor()
         # table_name = table_name.upper()
-        if table_name == 'CASE':
+        if table_name == 'CASE' or table_name == 'PcCase':
             table_name = 'PcCase'
+            table_type = 'CASE'
+
         # 컴포넌트 ID 목록 조회
         logger.info(f"Before Data received for table_name: {table_name}")
         logger.info(f"Before Data received for table_type: {table_type}")
