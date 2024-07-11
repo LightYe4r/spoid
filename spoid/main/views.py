@@ -79,6 +79,8 @@ class ComponentDetail(APIView):
         data = request.data
         component_id = data['component_id']
         component_type = data['component_type']
+        if component_type == 'CASE':
+            component_type = 'PcCase'
         cursor = connection.cursor()
         query = f"""
                 SELECT c.*, 
@@ -192,10 +194,10 @@ class CreateOrder(APIView):
         cursor.execute(f"""INSERT INTO Orders (OrderID, UserID, CPUID, CpuType, GPUID, GpuType, MemoryID, MemoryType,
                         CoolerID, CoolerType, MainboardID, MainboardType, StorageID, StorageType, PcCaseID, PcCaseType,
                         PowerID, PowerType) VALUES ('{order_id}', '{data['user_id']}', '{data['cpu_id']}',
-                        '{data['cpu_type']}', '{data['gpu_id']}', '{data['gpu_type']}', '{data['memory_id']}', '{data['memory_type']}',
-                        '{data['cooler_id']}', '{data['cooler_type']}', '{data['mainboard_id']}', '{data['mainboard_type']}',
-                        '{data['storage_id']}', '{data['storage_type']}', '{data['pc_case_id']}', '{data['pc_case_type']}', 
-                        '{data['power_id']}', '{data['power_type']}')""")
+                        'CPU', '{data['gpu_id']}', 'GPU', '{data['memory_id']}', 'MEMORY',
+                        '{data['cooler_id']}', 'COOLER', '{data['mainboard_id']}', 'MAINBOARD',
+                        '{data['storage_id']}', 'STORAGE', '{data['pc_case_id']}', 'PcCase', 
+                        '{data['power_id']}', 'POWER')""")
         cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{order_id}'""")
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
@@ -222,17 +224,17 @@ class GetOrder(APIView):
         if cursor.rowcount == 0:
             return Response([], status=status.HTTP_200_OK)
 
-        cursor.execute(f"""select Orders.OrderID, User.UserID, Cpu.Model AS 'CPU', PcCase.Model AS 'PcCase', Gpu.Model AS 'GPU', Memory.Model AS 'Memory', Storage.Model AS 'Storage', Cooler.Model AS 'Cooler', Mainboard.Model AS 'Mainboard', Power.Model AS 'Power', PcCase.ImageURL AS 'ImageURL'  
+        cursor.execute(f"""select Orders.OrderID, User.UserID, CPU.Model AS 'CPU', PcCase.Model AS 'PcCase', GPU.Model AS 'GPU', MEMORY.Model AS 'MEMORY', STORAGE.Model AS 'STORAGE', COOLER.Model AS 'COOLER', MAINBOARD.Model AS 'MAINBOARD', POWER.Model AS 'POWER', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
                         INNER Join User on User.UserID = Orders.UserID
-                        INNER Join Cpu on Cpu.ComponentID = Orders.CPUID
-                        INNER Join Gpu on Gpu.ComponentID = Orders.GPUID
-                        INNER Join Memory on Memory.ComponentID = Orders.MemoryID
-                        INNER Join Storage on Storage.ComponentID = Orders.StorageID
-                        INNER Join Mainboard on Mainboard.ComponentID = Orders.MainboardID
+                        INNER Join CPU on CPU.ComponentID = Orders.CPUID
+                        INNER Join GPU on GPU.ComponentID = Orders.GPUID
+                        INNER Join MEMORY on MEMORY.ComponentID = Orders.MemoryID
+                        INNER Join STORAGE on STORAGE.ComponentID = Orders.StorageID
+                        INNER Join MAINBOARD on MAINBOARD.ComponentID = Orders.MainboardID
                         INNER Join PcCase on PcCase.ComponentID = Orders.PcCaseID
-                        INNER Join Cooler on Cooler.ComponentID = Orders.CoolerID
-                        INNER Join Power on Power.ComponentID = Orders.PowerID
+                        INNER Join COOLER on COOLER.ComponentID = Orders.CoolerID
+                        INNER Join POWER on POWER.ComponentID = Orders.PowerID
                         WHERE Orders.UserID = '{data['user_id']}'""")
         sql_data = dictfetchall(cursor)
         
@@ -289,6 +291,8 @@ class CreateUser(APIView):
 class CreateFavorite(APIView):
     def post(self, request):
         data = request.data
+        if data['component_type'] == 'CASE':
+            data['component_type'] = 'PcCase'
         favorite_id = f"{datetime.now().isoformat()}+{data['user_id']}"
         cursor = connection.cursor()
         cursor.execute(f"""INSERT INTO Favorite (FavoriteID, UserID, ComponentID, Type) VALUES ('{favorite_id}', '{data['user_id']}', '{data['component_id']}', '{data['component_type']}')""")
@@ -302,6 +306,8 @@ class CreateFavorite(APIView):
 class DeleteFavorite(APIView):
     def post(self, request):
         data = request.data
+        if data['component_type'] == 'CASE':
+            data['component_type'] = 'PcCase'
         cursor = connection.cursor()
         cursor.execute(f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND Type = '{data['component_type']}'""")
         cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
@@ -316,7 +322,8 @@ class GetComponentListWithFavorite(APIView):
         data = request.data
         table_name = data['component_type']
         cursor = connection.cursor()
-        
+        if table_name == 'CASE':
+            table_name = 'PcCase'
         # 컴포넌트 ID 목록 조회
         cursor.execute(f"""SELECT componentID FROM Price WHERE Type = '{table_name}'""")
         sql_data = dictfetchall(cursor)
@@ -477,71 +484,70 @@ class GetLandingPage(APIView):
         for component in components:
             query = f"""
             WITH random_component AS (
-    SELECT *
-    FROM {component}
-    ORDER BY RAND()
-    LIMIT 1
-)
-SELECT 
-    c.*, 
-    GROUP_CONCAT(p.Date) AS Date,
-    GROUP_CONCAT(p.Shop) AS Shop,
-    GROUP_CONCAT(p.Price) AS Price,
-    GROUP_CONCAT(p.URL) AS URL,
-    CAST(ROUND(IFNULL(last_45_days.AvgPrice, 0)) AS UNSIGNED) AS AvgPriceLast45Days
-FROM 
-    random_component c
-JOIN (
-    SELECT 
-        p1.ComponentID, 
-        p1.Shop, 
-        p1.Date, 
-        p1.Price, 
-        p1.URL
-    FROM 
-        Price p1
-    JOIN (
-        SELECT 
-            ComponentID, 
-            Shop, 
-            MAX(Date) AS MaxDate
-        FROM 
-            Price
-        WHERE 
-            ComponentID IN (SELECT ComponentID FROM random_component)
-        GROUP BY 
-            ComponentID, Shop
-    ) p2 ON 
-        p1.ComponentID = p2.ComponentID AND 
-        p1.Shop = p2.Shop AND 
-        p1.Date = p2.MaxDate
-) p ON 
-    c.ComponentID = p.ComponentID
-LEFT JOIN (
-    SELECT 
-        ComponentID, 
-        ROUND(AVG(Price)) AS AvgPrice
-    FROM (
-        SELECT 
-            ComponentID, 
-            Date, 
-            MIN(Price) AS Price
-        FROM 
-            Price
-        WHERE 
-            Date >= DATE_SUB(CURDATE(), INTERVAL {period} DAY)
-        GROUP BY 
-            ComponentID, Date
-    ) daily_min_prices
-    GROUP BY 
-        ComponentID
-) last_45_days ON 
-    c.ComponentID = last_45_days.ComponentID
-GROUP BY 
-    c.ComponentID, 
-    c.Type;
-
-        """
+                SELECT *
+                FROM {component}
+                ORDER BY RAND()
+                LIMIT 1
+            )
+            SELECT 
+                c.*, 
+                GROUP_CONCAT(p.Date) AS Date,
+                GROUP_CONCAT(p.Shop) AS Shop,
+                GROUP_CONCAT(p.Price) AS Price,
+                GROUP_CONCAT(p.URL) AS URL,
+                CAST(ROUND(IFNULL(last_45_days.AvgPrice, 0)) AS UNSIGNED) AS AvgPriceLast45Days
+            FROM 
+                random_component c
+            JOIN (
+                SELECT 
+                    p1.ComponentID, 
+                    p1.Shop, 
+                    p1.Date, 
+                    p1.Price, 
+                    p1.URL
+                FROM 
+                    Price p1
+                JOIN (
+                    SELECT 
+                        ComponentID, 
+                        Shop, 
+                        MAX(Date) AS MaxDate
+                    FROM 
+                        Price
+                    WHERE 
+                        ComponentID IN (SELECT ComponentID FROM random_component)
+                    GROUP BY 
+                        ComponentID, Shop
+                ) p2 ON 
+                    p1.ComponentID = p2.ComponentID AND 
+                    p1.Shop = p2.Shop AND 
+                    p1.Date = p2.MaxDate
+            ) p ON 
+                c.ComponentID = p.ComponentID
+            LEFT JOIN (
+                SELECT 
+                    ComponentID, 
+                    ROUND(AVG(Price)) AS AvgPrice
+                FROM (
+                    SELECT 
+                        ComponentID, 
+                        Date, 
+                        MIN(Price) AS Price
+                    FROM 
+                        Price
+                    WHERE 
+                        Date >= DATE_SUB(CURDATE(), INTERVAL {period} DAY)
+                    GROUP BY 
+                        ComponentID, Date
+                ) daily_min_prices
+                GROUP BY 
+                    ComponentID
+            ) last_45_days ON 
+                c.ComponentID = last_45_days.ComponentID
+            GROUP BY 
+                c.ComponentID, 
+                c.Type;
+                    """
             cursor.execute(query)
             sql_data = dictfetchall(cursor)
             for item in sql_data:

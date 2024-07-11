@@ -399,12 +399,12 @@ class OrderListviewSerializer(serializers.Serializer):
     UserID = serializers.CharField()
     CPU = serializers.CharField()
     GPU = serializers.CharField()
-    Mainboard = serializers.CharField()
-    Memory = serializers.CharField()
-    Storage = serializers.CharField()
+    MAINBOARD = serializers.CharField()
+    MEMORY = serializers.CharField()
+    STORAGE = serializers.CharField()
     PcCase = serializers.CharField()
-    Cooler = serializers.CharField()
-    Power = serializers.CharField()
+    COOLER = serializers.CharField()
+    POWER = serializers.CharField()
     ImageURL = serializers.CharField()
 
 class Price45DaysSerializer(serializers.Serializer):
