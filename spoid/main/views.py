@@ -439,7 +439,10 @@ class GetComponentListWithFavorite(APIView):
                 item['LowestURL'] = 0
         
         # 쿼리 데이터를 직렬화
-        serializer = table_price_serializers[data['component_type']](sql_data, many=True)
+        if table_name == 'PcCase':
+            serializer = table_price_serializers['PcCase'](sql_data, many=True)
+        else:    
+            serializer = table_price_serializers[data['component_type']](sql_data, many=True)
         
         if data['user_id'] == 'None':
             return Response(serializer.data, status=status.HTTP_200_OK)

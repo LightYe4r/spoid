@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'aws_xray_sdk.ext.django',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'aws_xray_sdk.ext.django.middleware.XRayMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -58,6 +60,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+XRAY_RECORDER = {
+    'AUTO_INSTRUMENT': True,
+    'AWS_XRAY_CONTEXT_MISSING': 'LOG_ERROR',
+    'AWS_XRAY_DAEMON_ADDRESS': '127.0.0.1:5000',
+    'AWS_XRAY_TRACING_NAME': 'My application',
+    'PLUGINS': ('ElasticBeanstalkPlugin', 'EC2Plugin', 'ECSPlugin'),
+    'SAMPLING': False,
+}
 
 ROOT_URLCONF = 'spoid.urls'
 
