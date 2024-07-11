@@ -271,7 +271,7 @@ class GetOrder(APIView):
                 LEFT JOIN TodayPrices cooler ON o.CoolerID = cooler.ComponentID
                 LEFT JOIN TodayPrices power ON o.PowerID = power.ComponentID
                 WHERE o.UserID = '{data['user_id']}'
-                GROUP BY o.OrderID;
+                GROUP BY o.OrderID, TotalPrice;
 
         """
         cursor.execute(query)
