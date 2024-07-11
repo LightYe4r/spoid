@@ -5,10 +5,11 @@ from django.db import connection
 from .serializers import *
 from datetime import datetime, timedelta
 import logging
+import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-        
+
 period = 7
 
 table_serializers = {
