@@ -79,6 +79,7 @@ class ComponentDetail(APIView):
         data = request.data
         component_id = data['component_id']
         component_type = data['component_type']
+        component_type = component_type.upper()
         if component_type == 'CASE':
             component_type = 'PcCase'
         cursor = connection.cursor()
@@ -291,6 +292,7 @@ class CreateUser(APIView):
 class CreateFavorite(APIView):
     def post(self, request):
         data = request.data
+        data['component_type'] = data['component_type'].upper()
         if data['component_type'] == 'CASE':
             data['component_type'] = 'PcCase'
         favorite_id = f"{datetime.now().isoformat()}+{data['user_id']}"
@@ -306,6 +308,7 @@ class CreateFavorite(APIView):
 class DeleteFavorite(APIView):
     def post(self, request):
         data = request.data
+        data['component_type'] = data['component_type'].upper()
         if data['component_type'] == 'CASE':
             data['component_type'] = 'PcCase'
         cursor = connection.cursor()
@@ -322,6 +325,7 @@ class GetComponentListWithFavorite(APIView):
         data = request.data
         table_name = data['component_type']
         cursor = connection.cursor()
+        table_name = table_name.upper()
         if table_name == 'CASE':
             table_name = 'PcCase'
         # 컴포넌트 ID 목록 조회
