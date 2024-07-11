@@ -84,9 +84,10 @@ class ComponentDetail(APIView):
         data = request.data
         component_id = data['component_id']
         component_type = data['component_type']
+        component_table = component_type
         # component_type = component_type.upper()
         if component_type == 'CASE':
-            component_type = 'PcCase'
+            component_table = 'PcCase'
         cursor = connection.cursor()
         query = f"""
                 SELECT c.*, 
@@ -95,7 +96,7 @@ class ComponentDetail(APIView):
                 GROUP_CONCAT(pr.Price) as Price,
                 GROUP_CONCAT(pr.URL) as URL,
                 CAST(ROUND(IFNULL(AVG(last_45_days.Price), 0)) AS UNSIGNED) AS AvgPriceLast45Days
-            FROM {component_type} c
+            FROM {component_table} c
             JOIN (
                 SELECT pr1.ComponentID, pr1.Shop, pr1.Date, pr1.Price, pr1.URL
                 FROM Price pr1
