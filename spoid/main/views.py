@@ -4,6 +4,10 @@ from rest_framework import status
 from django.db import connection
 from .serializers import *
 from datetime import datetime, timedelta
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
         
 period = 7
 
@@ -404,12 +408,10 @@ class GetComponentListWithFavorite(APIView):
             WHERE c.ComponentID IN ({component_ids_str})
             GROUP BY c.ComponentID, c.Type
         """
-        print(query)
-        print('------------CL-------------')
+        logger.info(f"Before Data received for conversion: {query}")
         cursor.execute(query)
         sql_data = dictfetchall(cursor)
-        print(sql_data)
-        print('------------Cutting Line-------------')
+        logger.info(f"After Data received for conversion: {sql_data}")
         
         for item in sql_data:
             item['Date'] = item['Date'].split(',') if item['Date'] else []
