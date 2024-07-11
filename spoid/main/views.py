@@ -8,25 +8,25 @@ from datetime import datetime, timedelta
 period = 7
 
 table_serializers = {
-    'Cpu': CpuDataSerializer,
-    'Gpu': GpuDataSerializer,
-    'Memory': MemoryDataSerializer,
-    'Mainboard': MainboardDataSerializer,
-    'Power': PowerDataSerializer,
-    'Storage': StorageDataSerializer,
+    'CPU': CpuDataSerializer,
+    'GPU': GpuDataSerializer,
+    'MEMORY': MemoryDataSerializer,
+    'MAINBOARD': MainboardDataSerializer,
+    'POWER': PowerDataSerializer,
+    'STORAGE': StorageDataSerializer,
     'PcCase': PcCaseDataSerializer,
-    'Cooler': CoolerDataSerializer,
+    'COOLER': CoolerDataSerializer,
 }
 
 table_price_serializers = {
-    'Cpu': CpuPriceDataSerializer,
-    'Gpu': GpuPriceDataSerializer,
-    'Memory': MemoryPriceDataSerializer,
-    'Mainboard': MainboardPriceDataSerializer,
-    'Power': PowerPriceDataSerializer,
-    'Storage': StoragePriceDataSerializer,
+    'CPU': CpuPriceDataSerializer,
+    'GPU': GpuPriceDataSerializer,
+    'MEMORY': MemoryPriceDataSerializer,
+    'MAINBOARD': MainboardPriceDataSerializer,
+    'POWER': PowerPriceDataSerializer,
+    'STORAGE': StoragePriceDataSerializer,
     'PcCase': PcCasePriceDataSerializer,
-    'Cooler': CoolerPriceDataSerializer,
+    'COOLER': CoolerPriceDataSerializer,
 }
 
 
