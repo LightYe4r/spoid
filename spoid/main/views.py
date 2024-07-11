@@ -380,6 +380,7 @@ class GetComponentListWithFavorite(APIView):
             item['Date'] = item['Date'].split(',') if item['Date'] else []
             item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
             item['Price'] = item['Price'].split(',') if item['Price'] else []
+            item['Price'] = [None if price == '0' else price for price in item['Price']]
             item['URL'] = item['URL'].split(',') if item['URL'] else []
             if item['Price']:
                 item['LowestPrice'] = min([int(price) for price in item['Price'] if price])
