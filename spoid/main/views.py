@@ -418,7 +418,7 @@ class GetFavoriteListWithComponent(APIView):
         for component in favorite_data:
             component_type = component['Type']
             component_type = component_type.upper()
-            if component_type == 'CASE':
+            if component_type == 'CASE' or component_type == 'PCCASE':
                 component_type = 'PcCase'
             if component_type not in type_component_map:
                 type_component_map[component_type] = []
