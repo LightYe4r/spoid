@@ -407,6 +407,8 @@ class GetComponentListWithFavorite(APIView):
         
         cursor.execute(query)
         sql_data = dictfetchall(cursor)
+        print(sql_data)
+        print('------------Cutting Line-------------')
         
         for item in sql_data:
             item['Date'] = item['Date'].split(',') if item['Date'] else []
