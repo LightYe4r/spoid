@@ -205,7 +205,7 @@ class CreateOrder(APIView):
                         PowerID, PowerType) VALUES ('{order_id}', '{data['user_id']}', '{data['cpu_id']}',
                         'CPU', '{data['gpu_id']}', 'GPU', '{data['memory_id']}', 'MEMORY',
                         '{data['cooler_id']}', 'COOLER', '{data['mainboard_id']}', 'MAINBOARD',
-                        '{data['storage_id']}', 'STORAGE', '{data['pc_case_id']}', 'PcCase', 
+                        '{data['storage_id']}', 'STORAGE', '{data['pc_case_id']}', 'CASE', 
                         '{data['power_id']}', 'POWER')""")
         cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{order_id}'""")
         sql_data = dictfetchall(cursor)
@@ -330,8 +330,8 @@ class CreateFavorite(APIView):
     def post(self, request):
         data = request.data
         data['component_type'] = data['component_type'].upper()
-        if data['component_type'] == 'CASE':
-            data['component_type'] = 'PcCase'
+        # if data['component_type'] == 'CASE' or data['component_type'] == 'PCCASE':
+        #     data['component_type'] = 'CASE'
         favorite_id = f"{datetime.now().isoformat()}+{data['user_id']}"
         cursor = connection.cursor()
         cursor.execute(f"""INSERT INTO Favorite (FavoriteID, UserID, ComponentID, Type) VALUES ('{favorite_id}', '{data['user_id']}', '{data['component_id']}', '{data['component_type']}')""")
@@ -346,8 +346,8 @@ class DeleteFavorite(APIView):
     def post(self, request):
         data = request.data
         data['component_type'] = data['component_type'].upper()
-        if data['component_type'] == 'CASE':
-            data['component_type'] = 'PcCase'
+        # if data['component_type'] == 'CASE':
+        #     data['component_type'] = 'PcCase'
         cursor = connection.cursor()
         cursor.execute(f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND Type = '{data['component_type']}'""")
         cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
@@ -361,13 +361,14 @@ class GetComponentListWithFavorite(APIView):
     def post(self, request):
         data = request.data
         table_name = data['component_type']
+        table_type = table_name
         cursor = connection.cursor()
         table_name = table_name.upper()
-        if table_name == 'CASE' or table_name == 'PCCASE':
-            table_name = 'CASE'
+        if table_name == 'PcCase':
+            table_type = 'CASE'
         # 컴포넌트 ID 목록 조회
         logger.info(f"Before Data received for conversion: {table_name}")
-        cursor.execute(f"""SELECT ComponentID FROM Price WHERE Type = '{table_name}'""")
+        cursor.execute(f"""SELECT ComponentID FROM Price WHERE Type = '{table_type}'""")
         sql_data = dictfetchall(cursor)
         logger.info(f"middle Data received for conversion: {sql_data}")
         sql_data = [item['ComponentID'] for item in sql_data]
@@ -458,19 +459,20 @@ class GetFavoriteListWithComponent(APIView):
         cursor = connection.cursor()
         cursor.execute(f"""SELECT ComponentID, Type FROM Favorite WHERE UserID = '{user_id}'""")
         favorite_data = dictfetchall(cursor)
-        
         type_component_map = {}
         for component in favorite_data:
             component_type = component['Type']
+            component_table = component_type
             component_type = component_type.upper()
-            if component_type == 'CASE' or component_type == 'PCCASE':
-                component_type = 'PcCase'
             if component_type not in type_component_map:
                 type_component_map[component_type] = []
             type_component_map[component_type].append(component['ComponentID'])
         
         query_data = {}
         for component_type, component_ids in type_component_map.items():
+            component_table = component_type
+            if component_type == 'CASE':
+                component_table = 'PcCase'
             component_ids_str = ",".join([f"'{item}'" for item in component_ids])
             query = f"""
                 SELECT c.*, 
@@ -479,7 +481,7 @@ class GetFavoriteListWithComponent(APIView):
                     GROUP_CONCAT(p.Price) AS Price,
                     GROUP_CONCAT(p.URL) AS URL,
                     CAST(ROUND(IFNULL(AVG(last_45_days.Price), 0)) AS UNSIGNED) AS AvgPriceLast45Days
-                FROM {component_type} c
+                FROM {component_table} c
                 JOIN (
                     SELECT p1.ComponentID, p1.Shop, p1.Date, p1.Price, p1.URL
                     FROM Price p1
