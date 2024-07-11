@@ -404,7 +404,8 @@ class GetComponentListWithFavorite(APIView):
             WHERE c.ComponentID IN ({component_ids_str})
             GROUP BY c.ComponentID, c.Type
         """
-        
+        print(query)
+        print('------------CL-------------')
         cursor.execute(query)
         sql_data = dictfetchall(cursor)
         print(sql_data)
