@@ -369,7 +369,8 @@ class GetComponentListWithFavorite(APIView):
         if table_name == 'CASE':
             table_name = 'PcCase'
         # 컴포넌트 ID 목록 조회
-        logger.info(f"Before Data received for conversion: {table_name}")
+        logger.info(f"Before Data received for table_name: {table_name}")
+        logger.info(f"Before Data received for table_type: {table_type}")
         cursor.execute(f"""SELECT ComponentID FROM Price WHERE Type = '{table_type}'""")
         sql_data = dictfetchall(cursor)
         logger.info(f"middle Data received for conversion: {sql_data}")
