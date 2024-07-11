@@ -370,7 +370,7 @@ class GetComponentListWithFavorite(APIView):
         cursor.execute(f"""SELECT ComponentID FROM Price WHERE Type = '{table_name}'""")
         sql_data = dictfetchall(cursor)
         logger.info(f"middle Data received for conversion: {sql_data}")
-        sql_data = [item['componentID'] for item in sql_data]
+        sql_data = [item['ComponentID'] for item in sql_data]
         logger.info(f"after Data received for conversion: {sql_data}")
         component_ids_str = ','.join([f"'{item}'" for item in sql_data])
         logger.info(f"final Data received for conversion: {component_ids_str}")
