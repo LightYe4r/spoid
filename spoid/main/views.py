@@ -126,8 +126,9 @@ class ComponentDetail(APIView):
         """
         print(query)
         cursor.execute(query)
+        logger.info(f"Before Data received for conversion: {query}")
         sql_data = dictfetchall(cursor)
-        
+        logger.info(f"After Data received for conversion: {sql_data}")
         # 쿼리 데이터를 후처리하여 리스트로 변환
         for item in sql_data:
             item['Date'] = item['Date'].split(',') if item['Date'] else []
@@ -249,7 +250,7 @@ class GetOrder(APIView):
         sql_data = dictfetchall(cursor)
         
         query = f"""
-                SELECT OrderID, SUM(p.Price) AS TotalPrice
+                SELECT SUM(p.Price) AS TotalPrice
                 FROM Orders o
                 LEFT JOIN (
                     SELECT p.ComponentID, p.Price
@@ -365,8 +366,8 @@ class GetComponentListWithFavorite(APIView):
         table_type = table_name
         cursor = connection.cursor()
         # table_name = table_name.upper()
-        if table_name == 'PcCase':
-            table_type = 'CASE'
+        if table_name == 'CASE':
+            table_name = 'PcCase'
         # 컴포넌트 ID 목록 조회
         logger.info(f"Before Data received for conversion: {table_name}")
         cursor.execute(f"""SELECT ComponentID FROM Price WHERE Type = '{table_type}'""")
