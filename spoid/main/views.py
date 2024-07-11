@@ -326,7 +326,7 @@ class GetComponentListWithFavorite(APIView):
         table_name = data['component_type']
         cursor = connection.cursor()
         table_name = table_name.upper()
-        if table_name == 'CASE':
+        if table_name == 'CASE' or table_name == 'PCCASE':
             table_name = 'PcCase'
         # 컴포넌트 ID 목록 조회
         cursor.execute(f"""SELECT componentID FROM Price WHERE Type = '{table_name}'""")
