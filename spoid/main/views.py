@@ -240,11 +240,13 @@ class GetOrder(APIView):
         sql_data = dictfetchall(cursor)
         
         query = f"""
-                WITH LatestPrices AS (
+                WITH TodayPrices AS (
                     SELECT 
-                        p.ComponentID, 
-                        CAST(p.Price AS UNSIGNED) AS Price,
-                        ROW_NUMBER() OVER (PARTITION BY p.ComponentID ORDER BY p.Date DESC) AS rn
+                        p.ComponentID,
+                        CASE 
+                            WHEN p.Date = CURRENT_DATE() THEN CAST(p.Price AS UNSIGNED) 
+                            ELSE 0 
+                        END AS Price
                     FROM Price p
                 )
                 SELECT 
@@ -260,16 +262,17 @@ class GetOrder(APIView):
                         COALESCE(power.Price, 0)
                     ) AS UNSIGNED) AS TotalPrice
                 FROM Orders o
-                LEFT JOIN LatestPrices cpu ON o.CPUID = cpu.ComponentID AND cpu.rn = 1
-                LEFT JOIN LatestPrices gpu ON o.GPUID = gpu.ComponentID AND gpu.rn = 1
-                LEFT JOIN LatestPrices memory ON o.MemoryID = memory.ComponentID AND memory.rn = 1
-                LEFT JOIN LatestPrices storage ON o.StorageID = storage.ComponentID AND storage.rn = 1
-                LEFT JOIN LatestPrices mainboard ON o.MainboardID = mainboard.ComponentID AND mainboard.rn = 1
-                LEFT JOIN LatestPrices pccase ON o.PcCaseID = pccase.ComponentID AND pccase.rn = 1
-                LEFT JOIN LatestPrices cooler ON o.CoolerID = cooler.ComponentID AND cooler.rn = 1
-                LEFT JOIN LatestPrices power ON o.PowerID = power.ComponentID AND power.rn = 1
+                LEFT JOIN TodayPrices cpu ON o.CPUID = cpu.ComponentID
+                LEFT JOIN TodayPrices gpu ON o.GPUID = gpu.ComponentID
+                LEFT JOIN TodayPrices memory ON o.MemoryID = memory.ComponentID
+                LEFT JOIN TodayPrices storage ON o.StorageID = storage.ComponentID
+                LEFT JOIN TodayPrices mainboard ON o.MainboardID = mainboard.ComponentID
+                LEFT JOIN TodayPrices pccase ON o.PcCaseID = pccase.ComponentID
+                LEFT JOIN TodayPrices cooler ON o.CoolerID = cooler.ComponentID
+                LEFT JOIN TodayPrices power ON o.PowerID = power.ComponentID
                 WHERE o.UserID = '{data['user_id']}'
                 GROUP BY o.OrderID;
+
         """
         cursor.execute(query)
         total_price = dictfetchall(cursor)
