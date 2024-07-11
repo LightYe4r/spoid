@@ -80,7 +80,7 @@ class ComponentDetail(APIView):
         component_id = data['component_id']
         component_type = data['component_type']
         component_type = component_type.upper()
-        if component_type == 'CASE':
+        if component_type == 'CASE' or component_type == 'PCCASE':
             component_type = 'PcCase'
         cursor = connection.cursor()
         query = f"""
@@ -129,11 +129,11 @@ class ComponentDetail(APIView):
             item['Price'] = item['Price'].split(',') if item['Price'] else []
             item['URL'] = item['URL'].split(',') if item['URL'] else []
             try:
-                item['LowestPrice'] = min([int(price) for price in item['Price'] if int(price)!=0])
+                item['LowestPrice'] = min([int(price) for price in item['Price'] if price !=0])
             except:
                 item['LowestPrice'] = 0
-            item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
-            item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else None
+            item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else 0
+            item['LowestURL'] = item['URL'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else 0
 
         query = f"""
                     WITH daily_min_prices AS (
