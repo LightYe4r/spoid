@@ -417,6 +417,9 @@ class GetFavoriteListWithComponent(APIView):
         type_component_map = {}
         for component in favorite_data:
             component_type = component['Type']
+            component_type = component_type.upper()
+            if component_type == 'CASE':
+                component_type = 'PcCase'
             if component_type not in type_component_map:
                 type_component_map[component_type] = []
             type_component_map[component_type].append(component['ComponentID'])
@@ -483,7 +486,7 @@ class GetLandingPage(APIView):
     def post(self, request):
         # 부품별 랜덤 데이터의 정보와, 그 데이터의 최저가 정보 그 shop, 최근 7일간의 가격들을 가져오는 쿼리
         cursor = connection.cursor()
-        components = ['Cpu', 'Gpu', 'Memory', 'Mainboard', 'Power', 'Storage', 'PcCase', 'Cooler']
+        components = ['CPU', 'GPU', 'MEMORY', 'MAINBOARD', 'POWER', 'STORAGE', 'PcCase', 'COOLER']
         query_data = {}
         for component in components:
             query = f"""
