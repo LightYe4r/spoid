@@ -240,26 +240,34 @@ class GetOrder(APIView):
         sql_data = dictfetchall(cursor)
         
         query = f"""
-                SELECT OrderID, CAST(ROUND(SUM(p.Price)) AS UNSIGNED) AS TotalPrice
-                FROM Orders o
-                LEFT JOIN (
-                    SELECT p.ComponentID, p.Price
+                WITH LatestPrices AS (
+                    SELECT 
+                        p.ComponentID, 
+                        CAST(p.Price AS UNSIGNED) AS Price,
+                        ROW_NUMBER() OVER (PARTITION BY p.ComponentID ORDER BY p.Date DESC) AS rn
                     FROM Price p
-                    JOIN (
-                        SELECT ComponentID, MAX(Date) AS MaxDate
-                        FROM Price
-                        GROUP BY ComponentID
-                    ) latest ON p.ComponentID = latest.ComponentID AND p.Date = latest.MaxDate
-                ) p ON p.ComponentID IN (
-                    o.CPUID, 
-                    o.GPUID, 
-                    o.MemoryID, 
-                    o.StorageID, 
-                    o.MainboardID, 
-                    o.PcCaseID, 
-                    o.CoolerID, 
-                    o.PowerID
                 )
+                SELECT 
+                    o.OrderID, 
+                    CAST(ROUND(
+                        COALESCE(cpu.Price, 0) + 
+                        COALESCE(gpu.Price, 0) + 
+                        COALESCE(memory.Price, 0) + 
+                        COALESCE(storage.Price, 0) + 
+                        COALESCE(mainboard.Price, 0) + 
+                        COALESCE(pccase.Price, 0) + 
+                        COALESCE(cooler.Price, 0) + 
+                        COALESCE(power.Price, 0)
+                    ) AS UNSIGNED) AS TotalPrice
+                FROM Orders o
+                LEFT JOIN LatestPrices cpu ON o.CPUID = cpu.ComponentID AND cpu.rn = 1
+                LEFT JOIN LatestPrices gpu ON o.GPUID = gpu.ComponentID AND gpu.rn = 1
+                LEFT JOIN LatestPrices memory ON o.MemoryID = memory.ComponentID AND memory.rn = 1
+                LEFT JOIN LatestPrices storage ON o.StorageID = storage.ComponentID AND storage.rn = 1
+                LEFT JOIN LatestPrices mainboard ON o.MainboardID = mainboard.ComponentID AND mainboard.rn = 1
+                LEFT JOIN LatestPrices pccase ON o.PcCaseID = pccase.ComponentID AND pccase.rn = 1
+                LEFT JOIN LatestPrices cooler ON o.CoolerID = cooler.ComponentID AND cooler.rn = 1
+                LEFT JOIN LatestPrices power ON o.PowerID = power.ComponentID AND power.rn = 1
                 WHERE o.UserID = '{data['user_id']}'
                 GROUP BY o.OrderID;
         """
