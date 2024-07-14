@@ -124,11 +124,10 @@ class ComponentDetail(APIView):
             GROUP BY c.ComponentID, c.Type;
 
         """
-        print(query)
+        logger.info(query)
         cursor.execute(query)
-        logger.info(f"Before Data received for conversion: {query}")
+        logger.info(cursor.description)
         sql_data = dictfetchall(cursor)
-        logger.info(f"After Data received for conversion: {sql_data}")
         # 쿼리 데이터를 후처리하여 리스트로 변환
         for item in sql_data:
             item['Date'] = item['Date'].split(',') if item['Date'] else []
@@ -174,7 +173,9 @@ class ComponentDetail(APIView):
                     FROM daily_prices_with_shop dpws
                     GROUP BY dpws.ComponentID, dpws.Type;
         """
+        logger.info(query)
         cursor.execute(query)
+        logger.info(cursor.description)
         price_data = dictfetchall(cursor)
         for item in price_data:
             item['day1'] = item['day1'] if item['day1'] else 0
@@ -202,14 +203,31 @@ class CreateOrder(APIView):
         data = request.data
         order_id = f"{datetime.now().isoformat()}+{data['user_id']}"
         cursor = connection.cursor()
-        cursor.execute(f"""INSERT INTO Orders (OrderID, UserID, CPUID, CpuType, GPUID, GpuType, MemoryID, MemoryType,
-                        CoolerID, CoolerType, MainboardID, MainboardType, StorageID, StorageType, PcCaseID, PcCaseType,
-                        PowerID, PowerType) VALUES ('{order_id}', '{data['user_id']}', '{data['cpu_id']}',
-                        'CPU', '{data['gpu_id']}', 'GPU', '{data['memory_id']}', 'MEMORY',
-                        '{data['cooler_id']}', 'COOLER', '{data['mainboard_id']}', 'MAINBOARD',
-                        '{data['storage_id']}', 'STORAGE', '{data['pc_case_id']}', 'CASE', 
-                        '{data['power_id']}', 'POWER')""")
-        cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{order_id}'""")
+        query = f"""
+                        INSERT INTO Orders (OrderID, UserID, CPUID, CpuType, GPUID, GpuType, MemoryID, MemoryType,
+                         CoolerID, CoolerType, MainboardID, MainboardType, StorageID, StorageType, PcCaseID, PcCaseType,
+                         PowerID, PowerType) VALUES ('{order_id}', '{data['user_id']}', '{data['cpu_id']}',
+                         'CPU', '{data['gpu_id']}', 'GPU', '{data['memory_id']}', 'MEMORY',
+                         '{data['cooler_id']}', 'COOLER', '{data['mainboard_id']}', 'MAINBOARD',
+                         '{data['storage_id']}', 'STORAGE', '{data['pc_case_id']}', 'CASE', 
+                         '{data['power_id']}', 'POWER')"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+        # cursor.execute(f"""INSERT INTO Orders (OrderID, UserID, CPUID, CpuType, GPUID, GpuType, MemoryID, MemoryType,
+        #                 CoolerID, CoolerType, MainboardID, MainboardType, StorageID, StorageType, PcCaseID, PcCaseType,
+        #                 PowerID, PowerType) VALUES ('{order_id}', '{data['user_id']}', '{data['cpu_id']}',
+        #                 'CPU', '{data['gpu_id']}', 'GPU', '{data['memory_id']}', 'MEMORY',
+        #                 '{data['cooler_id']}', 'COOLER', '{data['mainboard_id']}', 'MAINBOARD',
+        #                 '{data['storage_id']}', 'STORAGE', '{data['pc_case_id']}', 'CASE', 
+        #                 '{data['power_id']}', 'POWER')""")
+        query = f"""
+                SELECT * FROM Orders WHERE orderID = '{order_id}'
+                """
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+        # cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{order_id}'""")
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = OrdersDataSerializer(sql_data, many=True)
@@ -220,7 +238,10 @@ class DetailOrder(APIView):
     def post(self, request):
         data = request.data
         cursor = connection.cursor()
-        cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{data['order_id']}'""")
+        query = f"""SELECT * FROM Orders WHERE OrderID = '{data['order_id']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = OrdersDataSerializer(sql_data, many=True)
@@ -231,11 +252,13 @@ class GetOrder(APIView):
     def post(self, request):
         data = request.data
         cursor = connection.cursor()
-        cursor.execute(f"""SELECT * FROM Orders WHERE UserID = '{data['user_id']}'""")
+        query = f"""SELECT * FROM Orders WHERE UserID = '{data['user_id']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
         if cursor.rowcount == 0:
             return Response([], status=status.HTTP_200_OK)
-
-        cursor.execute(f"""select Orders.OrderID, User.UserID, CPU.Model AS 'CPU', PcCase.Model AS 'PcCase', GPU.Model AS 'GPU', MEMORY.Model AS 'MEMORY', STORAGE.Model AS 'STORAGE', COOLER.Model AS 'COOLER', MAINBOARD.Model AS 'MAINBOARD', POWER.Model AS 'POWER', PcCase.ImageURL AS 'ImageURL'  
+        query = f"""select Orders.OrderID, User.UserID, CPU.Model AS 'CPU', PcCase.Model AS 'PcCase', GPU.Model AS 'GPU', MEMORY.Model AS 'MEMORY', STORAGE.Model AS 'STORAGE', COOLER.Model AS 'COOLER', MAINBOARD.Model AS 'MAINBOARD', POWER.Model AS 'POWER', PcCase.ImageURL AS 'ImageURL'  
                         from Orders
                         INNER Join User on User.UserID = Orders.UserID
                         INNER Join CPU on CPU.ComponentID = Orders.CPUID
@@ -246,7 +269,10 @@ class GetOrder(APIView):
                         INNER Join PcCase on PcCase.ComponentID = Orders.PcCaseID
                         INNER Join COOLER on COOLER.ComponentID = Orders.CoolerID
                         INNER Join POWER on POWER.ComponentID = Orders.PowerID
-                        WHERE Orders.UserID = '{data['user_id']}'""")
+                        WHERE Orders.UserID = '{data['user_id']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
         sql_data = dictfetchall(cursor)
         
         query = f"""
@@ -273,7 +299,9 @@ class GetOrder(APIView):
                 WHERE o.UserID = '{data['user_id']}'
                 Group BY o.OrderID;
         """
+        logger.info(query)
         cursor.execute(query)
+        logger.info(cursor.description)
         total_price = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = OrderListviewSerializer(sql_data, many=True)
@@ -308,19 +336,25 @@ class GetOrder(APIView):
                 WHERE o.UserID = '{data['user_id']}'
                 GROUP BY o.OrderID;
                 """
+        logger.info(query)
         cursor.execute(query)
+        logger.info(cursor.description)
         price_data = dictfetchall(cursor)
-        print(price_data)
-        # print(price_data[0]['Price'], price_data[1]['Price'], price_data[2]['Price'], price_data[3]['Price'], price_data[4]['Price'], price_data[5]['Price'], price_data[6]['Price'], price_data[7]['Price'])
-        print('----------------')  
         return Response(ResponseData, status=status.HTTP_200_OK)
 
 class CreateUser(APIView):
     def post(self, request):
         data = request.data
         cursor = connection.cursor()
-        cursor.execute(f"""INSERT INTO User (UserID, Name, Email) VALUES ('{data['user_id']}', '{data['user_name']}', '{data['user_email']}')""")
-        cursor.execute(f"""SELECT * FROM User WHERE UserID = '{data['user_id']}'""")
+        query = f"""INSERT INTO User (UserID, Name, Email) VALUES ('{data['user_id']}', '{data['user_name']}', '{data['user_email']}')"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+
+        query = f"""SELECT * FROM User WHERE UserID = '{data['user_id']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
 
@@ -336,8 +370,16 @@ class CreateFavorite(APIView):
         #     data['component_type'] = 'CASE'
         favorite_id = f"{datetime.now().isoformat()}+{data['user_id']}"
         cursor = connection.cursor()
-        cursor.execute(f"""INSERT INTO Favorite (FavoriteID, UserID, ComponentID, Type) VALUES ('{favorite_id}', '{data['user_id']}', '{data['component_id']}', '{data['component_type']}')""")
-        cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
+        query = f"""INSERT INTO Favorite (FavoriteID, UserID, ComponentID, Type) VALUES ('{favorite_id}', '{data['user_id']}', '{data['component_id']}', '{data['component_type']}')"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+
+        query = f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = FavoriteDataSerializer(sql_data, many=True)
@@ -351,8 +393,16 @@ class DeleteFavorite(APIView):
         # if data['component_type'] == 'CASE':
         #     data['component_type'] = 'PcCase'
         cursor = connection.cursor()
-        cursor.execute(f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND Type = '{data['component_type']}'""")
-        cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
+        query = f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND Type = '{data['component_type']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+
+        query =f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = FavoriteDataSerializer(sql_data, many=True)
@@ -371,15 +421,15 @@ class GetComponentListWithFavorite(APIView):
             table_type = 'CASE'
 
         # 컴포넌트 ID 목록 조회
-        logger.info(f"Before Data received for table_name: {table_name}")
-        logger.info(f"Before Data received for table_type: {table_type}")
-        cursor.execute(f"""SELECT ComponentID FROM Price WHERE Type = '{table_type}'""")
+        query = f"""SELECT ComponentID FROM Price WHERE Type = '{table_type}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+
+
         sql_data = dictfetchall(cursor)
-        logger.info(f"middle Data received for conversion: {sql_data}")
         sql_data = [item['ComponentID'] for item in sql_data]
-        logger.info(f"after Data received for conversion: {sql_data}")
         component_ids_str = ','.join([f"'{item}'" for item in sql_data])
-        logger.info(f"final Data received for conversion: {component_ids_str}")
         
         if not component_ids_str:
             return Response([], status=status.HTTP_200_OK)
@@ -419,10 +469,10 @@ class GetComponentListWithFavorite(APIView):
             WHERE c.ComponentID IN ({component_ids_str})
             GROUP BY c.ComponentID, c.Type
         """
-        logger.info(f"Before Data received for conversion: {query}")
+        logger.info(query)
         cursor.execute(query)
+        logger.info(cursor.description)
         sql_data = dictfetchall(cursor)
-        logger.info(f"After Data received for conversion: {sql_data}")
         
         for item in sql_data:
             item['Date'] = item['Date'].split(',') if item['Date'] else []
@@ -450,7 +500,11 @@ class GetComponentListWithFavorite(APIView):
         if data['user_id'] == 'None':
             return Response(serializer.data, status=status.HTTP_200_OK)
         
-        cursor.execute(f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'""")
+        query = f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
+
         favorite_data = dictfetchall(cursor)
         favorite_data = [item['ComponentID'] for item in favorite_data]
         
@@ -465,7 +519,10 @@ class GetFavoriteListWithComponent(APIView):
         user_id = data['user_id']
         
         cursor = connection.cursor()
-        cursor.execute(f"""SELECT ComponentID, Type FROM Favorite WHERE UserID = '{user_id}'""")
+        query = f"""SELECT ComponentID, Type FROM Favorite WHERE UserID = '{user_id}'"""
+        logger.info(query)
+        cursor.execute(query)
+        logger.info(cursor.description)
         favorite_data = dictfetchall(cursor)
         type_component_map = {}
         for component in favorite_data:
@@ -516,7 +573,9 @@ class GetFavoriteListWithComponent(APIView):
                 WHERE c.ComponentID IN ({component_ids_str})
                 GROUP BY c.ComponentID, c.Type;
             """
+            logger.info(query)
             cursor.execute(query)
+            logger.info(cursor.description)
             sql_data = dictfetchall(cursor)
             for item in sql_data:
                 item['Date'] = item['Date'].split(',') if item['Date'] else []
@@ -613,7 +672,9 @@ class GetLandingPage(APIView):
                 c.ComponentID, 
                 c.Type;
                     """
+            logger.info(query)
             cursor.execute(query)
+            logger.info(cursor.description)
             sql_data = dictfetchall(cursor)
             for item in sql_data:
                 item['Date'] = item['Date'].split(',') if item['Date'] else []
@@ -665,7 +726,10 @@ class GetLandingPage(APIView):
                         FROM daily_prices_with_shop dpws
                         GROUP BY dpws.ComponentID, dpws.Type;
             """
+            logger.info(query)
             cursor.execute(query)
+            logger.info(cursor.description)
+            
             price_data = dictfetchall(cursor)
             for item in price_data:
                 item['day1'] = item['day1'] if item['day1'] else 0
