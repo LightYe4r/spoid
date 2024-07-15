@@ -6,6 +6,7 @@ from .serializers import *
 from datetime import datetime, timedelta
 import logging
 import json
+from aws_xray_sdk.core import xray_recorder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -81,6 +82,7 @@ def dictfetchall(cursor):
     
 class ComponentDetail(APIView):
     def post(self, request):
+        segment = xray_recorder.begin_segment('ComponentDetail')
         data = request.data
         component_id = data['component_id']
         component_type = data['component_type']
@@ -196,10 +198,12 @@ class ComponentDetail(APIView):
             "price_data": price_serializer.data
         }
 
+        xray_recorder.end_segment()
         return Response(response_data, status=status.HTTP_200_OK)
     
 class CreateOrder(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('CreateOrder')
         data = request.data
         order_id = f"{datetime.now().isoformat()}+{data['user_id']}"
         cursor = connection.cursor()
@@ -231,11 +235,12 @@ class CreateOrder(APIView):
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = OrdersDataSerializer(sql_data, many=True)
-
+        xray_recorder.end_segment()
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class DetailOrder(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('DetailOrder')
         data = request.data
         cursor = connection.cursor()
         query = f"""SELECT * FROM Orders WHERE OrderID = '{data['order_id']}'"""
@@ -245,11 +250,12 @@ class DetailOrder(APIView):
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = OrdersDataSerializer(sql_data, many=True)
-        
+        xray_recorder.end_segment()
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class GetOrder(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('GetOrder')
         data = request.data
         cursor = connection.cursor()
         query = f"""SELECT * FROM Orders WHERE UserID = '{data['user_id']}'"""
@@ -307,21 +313,20 @@ class GetOrder(APIView):
         # 쿼리 데이터를 직렬화
         serializer = OrderListviewSerializer(sql_data, many=True)
         i = 0
-        print(total_price)
+
         for item in serializer.data:
-            print(total_price[i]['TotalPrice'])
             item['TotalPrice'] = total_price[i]['TotalPrice']
-            print(item['TotalPrice'])
             i += 1
-        print(item)
+
         ResponseData = {
             "order_data": serializer.data
         }
-
+        xray_recorder.end_segment()
         return Response(ResponseData, status=status.HTTP_200_OK)
 
 class CreateUser(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('CreateUser')
         data = request.data
         cursor = connection.cursor()
         query = f"""INSERT INTO User (UserID, Name, Email) VALUES ('{data['user_id']}', '{data['user_name']}', '{data['user_email']}')"""
@@ -337,11 +342,12 @@ class CreateUser(APIView):
         # 쿼리 데이터를 직렬화
 
         serializer = UserDataSerializer(sql_data, many=True)
-        
+        xray_recorder.end_segment()
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class CreateFavorite(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('CreateFavorite')
         data = request.data
         # data['component_type'] = data['component_type'].upper()
         # if data['component_type'] == 'CASE' or data['component_type'] == 'PCCASE':
@@ -361,11 +367,12 @@ class CreateFavorite(APIView):
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = FavoriteDataSerializer(sql_data, many=True)
-        
+        xray_recorder.end_segment()
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class DeleteFavorite(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('DeleteFavorite')
         data = request.data
         # data['component_type'] = data['component_type'].upper()
         # if data['component_type'] == 'CASE':
@@ -384,11 +391,12 @@ class DeleteFavorite(APIView):
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = FavoriteDataSerializer(sql_data, many=True)
-        
+        xray_recorder.end_segment()
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class GetComponentListWithFavorite(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('GetComponentListWithFavorite')
         data = request.data
         table_name = data['component_type']
         table_type = table_name
@@ -489,11 +497,12 @@ class GetComponentListWithFavorite(APIView):
         
         for item in serializer.data:
             item['IsFavorite'] = item['ComponentID'] in favorite_data
-        
+        xray_recorder.end_segment()
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class GetFavoriteListWithComponent(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('GetFavoriteListWithComponent')
         data = request.data
         user_id = data['user_id']
         
@@ -575,11 +584,12 @@ class GetFavoriteListWithComponent(APIView):
             # 쿼리 데이터를 직렬화
             serializer = table_price_serializers[component_type](sql_data, many=True)
             query_data[component_type] = serializer.data
-
+        xray_recorder.end_segment()
         return Response(query_data, status=status.HTTP_200_OK)
     
 class GetLandingPage(APIView):
     def post(self, request):
+        xray_recorder.begin_segment('GetLandingPage')
         # 부품별 랜덤 데이터의 정보와, 그 데이터의 최저가 정보 그 shop, 최근 7일간의 가격들을 가져오는 쿼리
         cursor = connection.cursor()
         components = ['CPU', 'GPU', 'MEMORY', 'MAINBOARD', 'POWER', 'STORAGE', 'PcCase', 'COOLER']
@@ -723,5 +733,5 @@ class GetLandingPage(APIView):
             # 쿼리 데이터를 직렬화
             price_serializer = Price45DaysSerializer(price_data, many=True)
             query_data[component + '_price'] = price_serializer.data
-
+        xray_recorder.end_segment()
         return Response(query_data, status=status.HTTP_200_OK)

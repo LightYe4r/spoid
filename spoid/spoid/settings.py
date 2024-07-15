@@ -13,12 +13,19 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import environ
 import os
+import logging
 from aws_xray_sdk.core import xray_recorder, patch_all
 from aws_xray_sdk.ext.django.middleware import XRayMiddleware
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 xray_recorder.configure(service='My application', daemon_address='xray-service.amazon-cloudwatch.svc.cluster.local:2000')
 patch_all()
 
+logger.info('X-Ray recorder configured')
+logger.info(xray_recorder)
+logger.info('X-Ray recorder patched')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
