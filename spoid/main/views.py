@@ -429,11 +429,12 @@ class GetComponentListWithFavorite(APIView):
 
         sql_data = dictfetchall(cursor)
         sql_data = [item['ComponentID'] for item in sql_data]
+        logger.info(sql_data)
+        sql_data = list(set(sql_data))
         component_ids_str = ','.join([f"'{item}'" for item in sql_data])
         
         if not component_ids_str:
             return Response([], status=status.HTTP_200_OK)
-        
         # 최신 데이터를 가져오는 쿼리
         query = f"""
             SELECT  c.*, 
@@ -729,7 +730,7 @@ class GetLandingPage(APIView):
             logger.info(query)
             cursor.execute(query)
             logger.info(cursor.description)
-            
+
             price_data = dictfetchall(cursor)
             for item in price_data:
                 item['day1'] = item['day1'] if item['day1'] else 0
