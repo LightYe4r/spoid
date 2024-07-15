@@ -13,8 +13,12 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import environ
 import os
-from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import xray_recorder, patch_all
 from aws_xray_sdk.ext.django.middleware import XRayMiddleware
+
+xray_recorder.configure(service='My application', daemon_address='xray-service.amazon-cloudwatch.svc.cluster.local:2000')
+patch_all()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -69,7 +73,6 @@ XRAY_RECORDER = {
     'AWS_XRAY_CONTEXT_MISSING': 'LOG_ERROR',
     'AWS_XRAY_DAEMON_ADDRESS': 'xray-service.amazon-cloudwatch.svc.cluster.local:2000',
     'AWS_XRAY_TRACING_NAME': 'My application',
-    'PLUGINS': ('EC2Plugin',),
     'SAMPLING': False,
 }
 
