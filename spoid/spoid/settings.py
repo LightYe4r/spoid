@@ -67,7 +67,7 @@ MIDDLEWARE = [
 XRAY_RECORDER = {
     'AUTO_INSTRUMENT': True,
     'AWS_XRAY_CONTEXT_MISSING': 'LOG_ERROR',
-    'AWS_XRAY_DAEMON_ADDRESS': 'xray-service.amazon-cloudwatch.svc.cluster.local:2000',
+    'AWS_XRAY_DAEMON_ADDRESS': 'xray-service.amazon-cloudwatch:2000',
     'AWS_XRAY_TRACING_NAME': 'My application',
     'PLUGINS': ('EC2Plugin',),
     'SAMPLING': False,
