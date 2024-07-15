@@ -276,16 +276,17 @@ class GetOrder(APIView):
         sql_data = dictfetchall(cursor)
         
         query = f"""
-                SELECT SUM(p.Price) AS TotalPrice
+                SELECT o.OrderID, CAST(SUM(p.MinPrice) as unsigned) AS TotalPrice
                 FROM Orders o
                 LEFT JOIN (
-                    SELECT p.ComponentID, p.Price
+                    SELECT p.ComponentID, MIN(p.Price) AS MinPrice
                     FROM Price p
                     JOIN (
                         SELECT ComponentID, MAX(Date) AS MaxDate
                         FROM Price
                         GROUP BY ComponentID
                     ) latest ON p.ComponentID = latest.ComponentID AND p.Date = latest.MaxDate
+                    GROUP BY p.ComponentID
                 ) p ON p.ComponentID IN (
                     o.CPUID, 
                     o.GPUID, 
@@ -301,45 +302,22 @@ class GetOrder(APIView):
         """
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         total_price = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = OrderListviewSerializer(sql_data, many=True)
         i = 0
+        print(total_price)
         for item in serializer.data:
+            print(total_price[i]['TotalPrice'])
             item['TotalPrice'] = total_price[i]['TotalPrice']
+            print(item['TotalPrice'])
             i += 1
+        print(item)
         ResponseData = {
             "order_data": serializer.data
         }
-        query = f"""
-                SELECT SUM(p.Price) 
-                FROM Orders o
-                LEFT JOIN (
-                    SELECT p.ComponentID, p.Price
-                    FROM Price p
-                    JOIN (
-                        SELECT ComponentID, MAX(Date) AS MaxDate
-                        FROM Price
-                        GROUP BY ComponentID
-                    ) latest ON p.ComponentID = latest.ComponentID AND p.Date = latest.MaxDate
-                ) p ON p.ComponentID IN (
-                    o.CPUID, 
-                    o.GPUID, 
-                    o.MemoryID, 
-                    o.StorageID, 
-                    o.MainboardID, 
-                    o.PcCaseID, 
-                    o.CoolerID, 
-                    o.PowerID
-                )
-                WHERE o.UserID = '{data['user_id']}'
-                GROUP BY o.OrderID;
-                """
-        logger.info(query)
-        cursor.execute(query)
-        logger.info(cursor.description)
-        price_data = dictfetchall(cursor)
+
         return Response(ResponseData, status=status.HTTP_200_OK)
 
 class CreateUser(APIView):
