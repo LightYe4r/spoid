@@ -38,7 +38,8 @@ table_price_serializers = {
 
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dictionary"
-    columns = [col[0] for col in cursor]
+    columns = [col[0] for col in cursor.description]
+    print(columns)
     return [
         dict(zip(columns, row))
         for row in cursor.fetchall()
@@ -412,8 +413,8 @@ class GetComponentListWithFavorite(APIView):
         cursor.execute(query)
         logger.info(cursor)
 
-
         sql_data = dictfetchall(cursor)
+        
         sql_data = [item['ComponentID'] for item in sql_data]
         logger.info(sql_data)
         sql_data = list(set(sql_data))
