@@ -37,7 +37,7 @@ table_price_serializers = {
 
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dictionary"
-    columns = [col[0] for col in cursor.description]
+    columns = [col[0] for col in cursor]
     return [
         dict(zip(columns, row))
         for row in cursor.fetchall()
@@ -126,7 +126,7 @@ class ComponentDetail(APIView):
         """
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 후처리하여 리스트로 변환
         for item in sql_data:
@@ -175,7 +175,7 @@ class ComponentDetail(APIView):
         """
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         price_data = dictfetchall(cursor)
         for item in price_data:
             item['day1'] = item['day1'] if item['day1'] else 0
@@ -213,7 +213,7 @@ class CreateOrder(APIView):
                          '{data['power_id']}', 'POWER')"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         # cursor.execute(f"""INSERT INTO Orders (OrderID, UserID, CPUID, CpuType, GPUID, GpuType, MemoryID, MemoryType,
         #                 CoolerID, CoolerType, MainboardID, MainboardType, StorageID, StorageType, PcCaseID, PcCaseType,
         #                 PowerID, PowerType) VALUES ('{order_id}', '{data['user_id']}', '{data['cpu_id']}',
@@ -226,7 +226,7 @@ class CreateOrder(APIView):
                 """
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         # cursor.execute(f"""SELECT * FROM Orders WHERE OrderID = '{order_id}'""")
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
@@ -241,7 +241,7 @@ class DetailOrder(APIView):
         query = f"""SELECT * FROM Orders WHERE OrderID = '{data['order_id']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
         serializer = OrdersDataSerializer(sql_data, many=True)
@@ -255,7 +255,7 @@ class GetOrder(APIView):
         query = f"""SELECT * FROM Orders WHERE UserID = '{data['user_id']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         if cursor.rowcount == 0:
             return Response([], status=status.HTTP_200_OK)
         query = f"""select Orders.OrderID, User.UserID, CPU.Model AS 'CPU', PcCase.Model AS 'PcCase', GPU.Model AS 'GPU', MEMORY.Model AS 'MEMORY', STORAGE.Model AS 'STORAGE', COOLER.Model AS 'COOLER', MAINBOARD.Model AS 'MAINBOARD', POWER.Model AS 'POWER', PcCase.ImageURL AS 'ImageURL'  
@@ -272,7 +272,7 @@ class GetOrder(APIView):
                         WHERE Orders.UserID = '{data['user_id']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         sql_data = dictfetchall(cursor)
         
         query = f"""
@@ -327,12 +327,12 @@ class CreateUser(APIView):
         query = f"""INSERT INTO User (UserID, Name, Email) VALUES ('{data['user_id']}', '{data['user_name']}', '{data['user_email']}')"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
 
         query = f"""SELECT * FROM User WHERE UserID = '{data['user_id']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
 
@@ -351,12 +351,12 @@ class CreateFavorite(APIView):
         query = f"""INSERT INTO Favorite (FavoriteID, UserID, ComponentID, Type) VALUES ('{favorite_id}', '{data['user_id']}', '{data['component_id']}', '{data['component_type']}')"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
 
         query = f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
 
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
@@ -374,12 +374,12 @@ class DeleteFavorite(APIView):
         query = f"""DELETE FROM Favorite WHERE UserID = '{data['user_id']}' AND ComponentID = '{data['component_id']}' AND Type = '{data['component_type']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
 
         query =f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
 
         sql_data = dictfetchall(cursor)
         # 쿼리 데이터를 직렬화
@@ -402,7 +402,7 @@ class GetComponentListWithFavorite(APIView):
         query = f"""SELECT ComponentID FROM Price WHERE Type = '{table_type}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
 
 
         sql_data = dictfetchall(cursor)
@@ -450,7 +450,7 @@ class GetComponentListWithFavorite(APIView):
         """
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         sql_data = dictfetchall(cursor)
         
         for item in sql_data:
@@ -482,7 +482,7 @@ class GetComponentListWithFavorite(APIView):
         query = f"""SELECT * FROM Favorite WHERE UserID = '{data['user_id']}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
 
         favorite_data = dictfetchall(cursor)
         favorite_data = [item['ComponentID'] for item in favorite_data]
@@ -501,7 +501,7 @@ class GetFavoriteListWithComponent(APIView):
         query = f"""SELECT ComponentID, Type FROM Favorite WHERE UserID = '{user_id}'"""
         logger.info(query)
         cursor.execute(query)
-        logger.info(cursor.description)
+        logger.info(cursor)
         favorite_data = dictfetchall(cursor)
         type_component_map = {}
         for component in favorite_data:
@@ -554,7 +554,7 @@ class GetFavoriteListWithComponent(APIView):
             """
             logger.info(query)
             cursor.execute(query)
-            logger.info(cursor.description)
+            logger.info(cursor)
             sql_data = dictfetchall(cursor)
             for item in sql_data:
                 item['Date'] = item['Date'].split(',') if item['Date'] else []
@@ -653,7 +653,7 @@ class GetLandingPage(APIView):
                     """
             logger.info(query)
             cursor.execute(query)
-            logger.info(cursor.description)
+            logger.info(cursor)
             sql_data = dictfetchall(cursor)
             for item in sql_data:
                 item['Date'] = item['Date'].split(',') if item['Date'] else []
@@ -707,7 +707,7 @@ class GetLandingPage(APIView):
             """
             logger.info(query)
             cursor.execute(query)
-            logger.info(cursor.description)
+            logger.info(cursor)
 
             price_data = dictfetchall(cursor)
             for item in price_data:
