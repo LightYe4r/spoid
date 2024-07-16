@@ -470,7 +470,7 @@ class GetComponentListWithFavorite(APIView):
             item['URL'] = item['URL'].split(',') if item['URL'] else []
             if item['Price']:
                 try:
-                    item['LowestPrice'] = min([int(price) for price in item['Price'] if price != 0])
+                    item['LowestPrice'] = min([int(price) for price in item['Price'] if (isdigit(price) and int(price) != 0)])
                 except:
                     item['LowestPrice'] = 0
                 item['LowestShop'] = item['Shop'][item['Price'].index(str(item['LowestPrice']))] if item['LowestPrice'] else 0
