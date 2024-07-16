@@ -417,8 +417,9 @@ class GetComponentListWithFavorite(APIView):
         sql_data = dictfetchall(cursor)
         
         sql_data = [item['ComponentID'] for item in sql_data]
-        logger.info(sql_data)
+        
         sql_data = list(set(sql_data))
+        logger.info(sql_data)
         component_ids_str = ','.join([f"'{item}'" for item in sql_data])
         
         if not component_ids_str:
