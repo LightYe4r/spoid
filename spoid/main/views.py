@@ -89,7 +89,7 @@ class ComponentDetail(APIView):
         component_type = data['component_type']
         component_table = component_type
         # component_type = component_type.upper()
-        if component_type == 'CASE':
+        if component_type == 'CASE' or component_type == 'PCCASE':
             component_table = 'PcCase'
         cursor = connection.cursor()
         query = f"""
