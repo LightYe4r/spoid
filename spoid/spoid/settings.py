@@ -17,6 +17,10 @@ import logging
 from aws_xray_sdk.core import xray_recorder, patch_all
 from aws_xray_sdk.ext.django.middleware import XRayMiddleware
 
+os.environ['AWS_XRAY_CONTEXT_MISSING'] = 'LOG_ERROR'
+os.environ['AWS_XRAY_DAEMON_ADDRESS'] = 'xray-service.amazon-cloudwatch.svc.cluster.local:2000'
+os.environ['AWS_XRAY_TRACING_NAME'] = 'My application'
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -70,14 +74,23 @@ MIDDLEWARE = [
     'aws_xray_sdk.ext.django.middleware.XRayMiddleware',
 ]
 
-XRAY_RECORDER = {
-    'AWS_XRAY_CONTEXT_MISSING': 'LOG_ERROR',
-    'AWS_XRAY_DAEMON_ADDRESS': 'xray-service.amazon-cloudwatch.svc.cluster.local:2000',
+# XRAY_RECORDER = {
+#     'AWS_XRAY_CONTEXT_MISSING': 'LOG_ERROR',
+#     'AWS_XRAY_DAEMON_ADDRESS': 'xray-service.amazon-cloudwatch.svc.cluster.local:2000',
+#     'AWS_XRAY_TRACING_NAME': 'My application',
+#     'SAMPLING': False,
+# }
+
+# xray_recorder.configure(**XRAY_RECORDER)
+# AWS X-Ray 설정
+XRAY_RECORDER_CONFIG = {
+    'AWS_XRAY_DAEMON_ADDRESS': 'xray-service.amazon-cloudwatch.svc.cluster.local:2000',  # 이 주소가 올바른지 확인
     'AWS_XRAY_TRACING_NAME': 'My application',
-    'SAMPLING': False,
 }
 
-xray_recorder.configure(**XRAY_RECORDER)
+# X-Ray recorder 구성
+xray_recorder.configure(service=XRAY_RECORDER_CONFIG['AWS_XRAY_TRACING_NAME'], 
+                        daemon_address=XRAY_RECORDER_CONFIG['AWS_XRAY_DAEMON_ADDRESS'])
 patch_all()
 
 logger.info('X-Ray recorder configured')
