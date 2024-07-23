@@ -598,10 +598,15 @@ class GetLandingPage(APIView):
         components = ['CPU', 'GPU', 'MEMORY', 'MAINBOARD', 'POWER', 'STORAGE', 'PcCase', 'COOLER']
         query_data = {}
         for component in components:
+            component_Type = component
+            if component == 'PcCASE':
+                component_Type = 'CASE'
             query = f"""
             WITH random_component AS (
-                SELECT *
+                SELECT {component}.*
                 FROM {component}
+                JOIN Price
+                on Price.ComponentID = {component}.ComponentID
                 ORDER BY RAND()
                 LIMIT 1
             )
@@ -667,7 +672,11 @@ class GetLandingPage(APIView):
             logger.info(query)
             cursor.execute(query)
             logger.info(cursor)
+            
             sql_data = dictfetchall(cursor)
+            print('------------------ Random Component ------------------')
+            print(sql_data)
+            print('------------------------------------------------------')
             for item in sql_data:
                 item['Date'] = item['Date'].split(',') if item['Date'] else []
                 item['Shop'] = item['Shop'].split(',') if item['Shop'] else []
@@ -696,25 +705,25 @@ class GetLandingPage(APIView):
                         daily_prices_with_shop AS (
                             SELECT p.ComponentID, p.Type, p.Date, p.Price AS MinPrice, p.Shop
                             FROM Price p
-                            INNER JOIN daily_min_prices dmp ON p.ComponentID = dmp.ComponentID AND p.Type = dmp.Type AND DATE_FORMAT(p.Date, '%y-%m-d') = DATE_FORMAT(dmp.Date, '%y-%m-%d') AND p.Price = dmp.MinPrice
+                            INNER JOIN daily_min_prices dmp ON p.ComponentID = dmp.ComponentID AND p.Type = dmp.Type AND p.Date = dmp.Date AND p.Price = dmp.MinPrice
                         )
                         SELECT
                             dpws.ComponentID,
                             dpws.Type,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{datetime.today().strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day1,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{datetime.today().strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day1shop,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day2,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day2shop,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day3,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day3shop,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=3)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day4,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=3)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day4shop,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=4)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day5,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=4)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day5shop,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=5)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day6,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=5)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day6shop,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=6)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day7,
-                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%y-%m-%d') = '{(datetime.today() - timedelta(days=6)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day7shop
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{datetime.today().strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day1,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{datetime.today().strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day1shop,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day2,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day2shop,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day3,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day3shop,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=3)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day4,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=3)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day4shop,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=4)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day5,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=4)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day5shop,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=5)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day6,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=5)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day6shop,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=6)).strftime('%Y-%m-%d')}' THEN dpws.MinPrice END) AS day7,
+                            MAX(CASE WHEN DATE_FORMAT(dpws.Date, '%Y-%m-%d') = '{(datetime.today() - timedelta(days=6)).strftime('%Y-%m-%d')}' THEN dpws.Shop END) AS day7shop
                         FROM daily_prices_with_shop dpws
                         GROUP BY dpws.ComponentID, dpws.Type;
             """
