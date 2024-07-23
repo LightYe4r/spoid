@@ -684,8 +684,8 @@ class GetLandingPage(APIView):
             serializer = table_price_serializers[component](sql_data, many=True)
             query_data[component] = serializer.data
             print(query_data)
-            # component_id = query_data[component][0]['ComponentID']
-            component_id = 'C1'
+            component_id = query_data[component][0]['ComponentID']
+            # component_id = 'C1'
             query = f"""
                         WITH daily_min_prices AS (
                             SELECT ComponentID, Type, Date, MIN(Price) AS MinPrice
